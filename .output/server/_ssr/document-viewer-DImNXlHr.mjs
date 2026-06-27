@@ -1,0 +1,225 @@
+import { i as __toESM } from "../_runtime.mjs";
+import { a as require_jsx_runtime, o as require_react } from "../_libs/react+tanstack__react-query.mjs";
+import { i as getStoredAuth$1, t as API_BASE } from "./auth-context-rnFr6IQp.mjs";
+import { H as FileText, I as LoaderCircle, b as RotateCw, n as ZoomIn, q as Download, t as ZoomOut } from "../_libs/lucide-react.mjs";
+import { r as Card } from "./ui-bits-nExllFl8.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/document-viewer-DImNXlHr.js
+var import_react = /* @__PURE__ */ __toESM(require_react());
+var import_jsx_runtime = require_jsx_runtime();
+function DocumentViewer({ attachmentId, filename = "Document", contentType = "application/pdf", boundingBoxes = [], onHoverBox }) {
+	const [blobUrl, setBlobUrl] = (0, import_react.useState)(null);
+	const [loading, setLoading] = (0, import_react.useState)(false);
+	const [error, setError] = (0, import_react.useState)(false);
+	const [zoom, setZoom] = (0, import_react.useState)(100);
+	const [rotation, setRotation] = (0, import_react.useState)(0);
+	const containerRef = (0, import_react.useRef)(null);
+	(0, import_react.useEffect)(() => {
+		let active = true;
+		async function loadDocument() {
+			setLoading(true);
+			setError(false);
+			try {
+				const auth = getStoredAuth$1();
+				const headers = {};
+				if (auth?.access_token) headers["Authorization"] = `Bearer ${auth.access_token}`;
+				const res = await fetch(`${API_BASE}/documents/${attachmentId}/view`, { headers });
+				if (!res.ok) throw new Error("Failed to load document");
+				const blob = await res.blob();
+				if (!active) return;
+				setBlobUrl(URL.createObjectURL(blob));
+			} catch (e) {
+				if (active) setError(true);
+			} finally {
+				if (active) setLoading(false);
+			}
+		}
+		if (attachmentId) loadDocument();
+		else setBlobUrl(null);
+		return () => {
+			active = false;
+			if (blobUrl) URL.revokeObjectURL(blobUrl);
+		};
+	}, [attachmentId]);
+	const handleDownload = () => {
+		if (blobUrl) {
+			const a = document.createElement("a");
+			a.href = blobUrl;
+			a.download = filename;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+		}
+	};
+	const isImage = contentType.startsWith("image/");
+	if (!attachmentId) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Card, {
+		className: "!p-0 overflow-hidden flex flex-col h-full bg-slate-900 border-slate-800",
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "flex-1 grid place-items-center text-slate-500 text-sm",
+			children: "Select a document to preview"
+		})
+	});
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: "!p-0 overflow-hidden flex flex-col h-full bg-slate-900 border-slate-800",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "p-3 border-b border-slate-800 bg-slate-950 flex items-center justify-between text-slate-300",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex items-center gap-2 text-sm font-medium truncate px-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FileText, { className: "h-4 w-4 text-primary shrink-0" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					className: "truncate max-w-[200px] lg:max-w-[300px]",
+					children: filename
+				})]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex items-center gap-1 shrink-0",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						onClick: () => setZoom((z) => Math.max(50, z - 25)),
+						className: "h-8 w-8 grid place-items-center rounded hover:bg-slate-800 transition",
+						title: "Zoom Out",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ZoomOut, { className: "h-4 w-4" })
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+						className: "text-xs px-2 tabular-nums w-12 text-center",
+						children: [zoom, "%"]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						onClick: () => setZoom((z) => Math.min(250, z + 25)),
+						className: "h-8 w-8 grid place-items-center rounded hover:bg-slate-800 transition",
+						title: "Zoom In",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ZoomIn, { className: "h-4 w-4" })
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "w-px h-4 bg-slate-800 mx-1" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						onClick: () => setRotation((r) => (r + 90) % 360),
+						className: "h-8 w-8 grid place-items-center rounded hover:bg-slate-800 transition",
+						title: "Rotate",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RotateCw, { className: "h-4 w-4" })
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						onClick: handleDownload,
+						className: "h-8 w-8 grid place-items-center rounded hover:bg-slate-800 transition",
+						title: "Download",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Download, { className: "h-4 w-4" })
+					})
+				]
+			})]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "flex-1 relative overflow-auto bg-slate-900/50 p-4 lg:p-8",
+			ref: containerRef,
+			children: [
+				loading && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-3",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "h-6 w-6 animate-spin text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "text-sm",
+						children: "Loading document preview..."
+					})]
+				}),
+				error && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-2",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FileText, { className: "h-10 w-10 opacity-20 mb-2" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "text-sm",
+							children: "Preview not available"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							onClick: handleDownload,
+							className: "text-primary hover:underline text-xs mt-2",
+							children: "Download file"
+						})
+					]
+				}),
+				blobUrl && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "mx-auto bg-white shadow-2xl relative transition-transform duration-200",
+					style: {
+						transform: `scale(${zoom / 100}) rotate(${rotation}deg)`,
+						transformOrigin: "top center",
+						width: "100%",
+						maxWidth: "800px",
+						minHeight: isImage ? "auto" : "1000px"
+					},
+					children: [isImage ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", {
+						src: blobUrl,
+						alt: filename,
+						className: "w-full h-auto block"
+					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("object", {
+						data: `${blobUrl}#toolbar=0&navpanes=0`,
+						type: contentType,
+						className: "w-full min-h-[1000px]"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "absolute inset-0 pointer-events-none",
+						style: { zIndex: 10 },
+						children: boundingBoxes.map((box) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "absolute border-2 transition-all duration-300 pointer-events-auto cursor-crosshair",
+							style: {
+								top: `${box.top}%`,
+								left: `${box.left}%`,
+								width: `${box.width}%`,
+								height: `${box.height}%`,
+								borderColor: box.color,
+								backgroundColor: box.isActive ? `${box.color}33` : "transparent",
+								boxShadow: box.isActive ? `0 0 15px ${box.color}66` : "none",
+								zIndex: box.isActive ? 20 : 10
+							},
+							onMouseEnter: () => onHoverBox?.(box.id),
+							onMouseLeave: () => onHoverBox?.(null),
+							children: box.isActive && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "absolute bottom-full left-0 mb-1 px-2 py-1 text-xs font-bold text-white tracking-wider rounded whitespace-nowrap shadow-lg flex flex-col gap-1",
+								style: { backgroundColor: box.color },
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "uppercase",
+									children: box.label
+								}), box.error_details && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "bg-black/20 p-1.5 rounded text-[10px] font-normal normal-case flex flex-col gap-0.5 mt-1 border border-white/10",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex justify-between gap-4",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "opacity-80",
+												children: "Severity:"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "font-semibold text-red-200 capitalize",
+												children: box.error_details.severity
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex justify-between gap-4",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "opacity-80",
+												children: "Root Cause:"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "font-medium text-white",
+												children: box.error_details.root_cause
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex justify-between gap-4",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "opacity-80",
+												children: "Fix:"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "font-medium text-green-200",
+												children: box.error_details.suggested_fix
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex justify-between gap-4",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "opacity-80",
+												children: "Impact:"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "font-medium text-orange-200",
+												children: box.error_details.business_impact
+											})]
+										})
+									]
+								})]
+							})
+						}, box.id))
+					})]
+				})
+			]
+		})]
+	});
+}
+//#endregion
+export { DocumentViewer as t };

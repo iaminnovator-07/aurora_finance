@@ -57,7 +57,11 @@ class GeminiService:
                 text = response.text or ""
                 return {"text": text.strip(), "confidence": 0.92, "source": "gemini"}
             except Exception as exc:
-                logger.warning("Gemini generate_text failed, using fallback: %s", exc)
+                exc_str = str(exc).lower()
+                if any(kw in exc_str for kw in ("429", "quota", "rate", "timeout", "deadline", "resource")):
+                    logger.warning("Gemini quota/rate limit hit, using fallback: %s", exc)
+                else:
+                    logger.warning("Gemini generate_text failed, using fallback: %s", exc)
 
         return self._fallback_text(prompt, system_instruction)
 
@@ -80,10 +84,12 @@ class GeminiService:
                     system_instruction=system_instruction or "You are a JSON extraction assistant.",
                     temperature=0.1,
                 )
-                parsed = self._parse_json(result["text"])
-                parsed["_confidence"] = result["confidence"]
-                parsed["_source"] = "gemini"
-                return parsed
+                parsed = self._parse_json_safe(result["text"])
+                if parsed is not None:
+                    parsed["_confidence"] = result["confidence"]
+                    parsed["_source"] = "gemini"
+                    return parsed
+                logger.warning("Gemini returned non-parseable JSON, using fallback")
             except Exception as exc:
                 logger.warning("Gemini generate_json failed, using fallback: %s", exc)
 
@@ -114,17 +120,29 @@ class GeminiService:
         }
 
     def _parse_json(self, text: str) -> dict[str, Any]:
+        """Parse JSON from text, raising ProcessingError on failure (for explicit callers)."""
+        result = self._parse_json_safe(text)
+        if result is None:
+            raise ProcessingError(
+                "Failed to parse AI JSON response",
+                reason=f"Could not decode JSON from: {text[:200]}",
+            )
+        return result
+
+    def _parse_json_safe(self, text: str) -> dict[str, Any] | None:
+        """Parse JSON from text, returning None on failure (safe fallback)."""
         cleaned = text.strip()
         if cleaned.startswith("```"):
             cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
             cleaned = re.sub(r"\s*```$", "", cleaned)
+        # Try to extract JSON object from text
+        json_match = re.search(r'\{[\s\S]*\}', cleaned)
+        if json_match:
+            cleaned = json_match.group(0)
         try:
             return json.loads(cleaned)
-        except json.JSONDecodeError as exc:
-            raise ProcessingError(
-                "Failed to parse AI JSON response",
-                reason=str(exc),
-            ) from exc
+        except json.JSONDecodeError:
+            return None
 
     def _fallback_text(
         self, prompt: str, system_instruction: str | None = None

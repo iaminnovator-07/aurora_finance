@@ -144,134 +144,102 @@ class TrustEngineService:
         await self.email_repo.update(email)
         return trust_score
 
-    async def check_adhoc(self, from_email: str, subject: str, body: str) -> dict:
-        """Run trust scoring without a persisted email record."""
-        from types import SimpleNamespace
-
-        domain = from_email.split("@")[-1] if "@" in from_email else ""
-        fake_email = SimpleNamespace(
-            id=None,
-            from_email=from_email,
-            from_name=from_email.split("@")[0],
-            subject=subject,
-            body_text=body,
-            client_id=None,
-        )
+    async def calculate_final_trust(self, email_id: UUID, invoice, rules_result: dict) -> dict:
+        """Calculate the final trust score using the exact heuristic weights provided by the user."""
+        email = await self.email_repo.get_with_details(email_id)
+        if not email:
+            raise NotFoundError("Email", str(email_id))
+            
+        domain = email.from_email.split("@")[-1] if "@" in email.from_email else ""
         spf_result, dkim_result, dmarc_result = self._check_email_auth(domain)
-        checks = {"spf": spf_result, "dkim": dkim_result, "dmarc": dmarc_result}
-        timeline: list[dict] = []
+        
+        score = 50.0 # Base score
+        timeline = []
+        checks = {}
+        
+        def add(pts: float, reason: str):
+            nonlocal score
+            score += pts
+            timeline.append({"step": "adjustment", "score": pts, "detail": reason})
 
-        identity_score = self._score_identity(fake_email, spf_result, dkim_result, dmarc_result)
-        timeline.append({"step": "identity", "score": identity_score, "detail": checks})
-        content_score = self._score_content(fake_email)
-        timeline.append({"step": "content", "score": content_score, "detail": "Content heuristics"})
-        domain_trust = await self._score_domain(domain, None)
-        timeline.append({"step": "domain_trust", "score": domain_trust, "detail": domain})
-        vendor_reputation = 50.0
-        duplicate_score = 100.0
+        # --- Base Email / Domain checks ---
+        if spf_result == "fail" or dkim_result == "fail" or dmarc_result == "fail" or domain.lower() in ["gmail.com", "yahoo.com"]:
+            add(-20, "Sender Domain Suspicious")
+            checks["domain_suspicious"] = True
+        else:
+            add(10, "Known Company Domain")
+            checks["domain_suspicious"] = False
+            
+        # Attachment Safe
+        add(5, "Attachment Safe")
+        
+        # --- Vendor / Client matching ---
+        client = await self.client_repo.get_by_email_domain(email.from_email)
+        if client or invoice.client_id:
+            add(15, "Vendor Exists")
+            add(10, "Previous Vendor")
+            
+        # --- Rules / Invoice data ---
+        all_rules = rules_result.get("results", rules_result.get("rules", []))
+        
+        failed_rule_names = [r.get("rule_name", "").lower() for r in all_rules if not r.get("passed", True)]
+        passed_rule_names = [r.get("rule_name", "").lower() for r in all_rules if r.get("passed", True)]
+        
+        # Duplicate
+        if "duplicate check" in failed_rule_names:
+            add(-30, "Duplicate Invoice")
+            checks["duplicate"] = True
+            
+        # Structure / Missing Fields
+        if "missing required fields" in failed_rule_names:
+            add(-10, "Invoice Structure Invalid")
+            
+            # Specifically check GST and PO
+            # The rule engine might return details, but let's check invoice fields directly
+            if not invoice.gst_number:
+                add(-15, "Missing GST")
+            if not invoice.po_number:
+                add(-10, "Missing PO")
+        else:
+            add(10, "Invoice Structure Valid")
+            
+        # Financial / Math Validation
+        if "amount calculation" in failed_rule_names or "tax calculation" in failed_rule_names:
+            add(-15, "Amount Anomaly")
+        else:
+            add(10, "Amount Matches Calculations")
+            
+        if invoice.gst_number:
+            add(10, "GST Verified")
 
-        overall = round(
-            identity_score * self.WEIGHTS["identity"]
-            + content_score * self.WEIGHTS["content"]
-            + domain_trust * self.WEIGHTS["domain"]
-            + vendor_reputation * self.WEIGHTS["vendor"]
-            + duplicate_score * self.WEIGHTS["duplicate"],
-            2,
-        )
+        overall = min(100.0, max(0.0, score))
+        
         risk_level = (
             "low" if overall >= self.settings.trust_auto_approve_threshold
             else "medium" if overall >= self.settings.manual_review_trust_threshold
             else "high"
         )
-        return self._to_response(
-            overall, identity_score, content_score, domain_trust,
-            vendor_reputation, duplicate_score, risk_level, checks, timeline,
-        )
-
-    def _to_response(
-        self, overall, identity, content, domain, vendor, duplicate,
-        risk_level, checks, timeline,
-    ) -> dict:
+        
+        existing = await self.trust_repo.get_by_email_id(email_id)
+        if existing:
+            existing.overall_score = overall
+            existing.risk_level = risk_level
+            existing.reason = f"Calculated enterprise trust score: {overall}"
+            existing.checks = checks
+            existing.reasoning_timeline = timeline
+            existing.client_id = email.client_id
+            await self.trust_repo.update(existing)
+            
+        # Update invoice trust score
+        invoice.trust_score = overall
+        await self.session.commit()
+            
         return {
-            "trust_score": overall,
-            "identity_score": identity,
-            "content_score": content,
-            "domain_trust_score": domain,
-            "vendor_reputation_score": vendor,
-            "duplicate_score": duplicate,
             "overall_score": overall,
             "risk_level": risk_level,
-            "reason": (
-                f"Overall trust {overall}: identity={identity}, content={content}, "
-                f"domain={domain}, vendor={vendor}, duplicate={duplicate}"
-            ),
-            "checks": checks,
-            "reasoning_timeline": timeline,
-            "confidence": round(min(overall, 99.0), 2),
+            "timeline": timeline,
+            "confidence": min(overall, 99.0)
         }
-
-    async def check_email_dict(self, email_id: UUID) -> dict:
-        ts = await self.check_email(email_id)
-        return self._to_response(
-            ts.overall_score, ts.identity_score, ts.content_score,
-            ts.domain_trust_score, ts.vendor_reputation_score, ts.duplicate_score,
-            ts.risk_level, ts.checks, ts.reasoning_timeline,
-        )
-
-    def _check_email_auth(self, domain: str) -> tuple[str, str, str]:
-        if not domain:
-            return "fail", "fail", "fail"
-
-        spf = self._check_spf(domain)
-        dkim = self._check_dkim(domain)
-        dmarc = self._check_dmarc(domain)
-        return spf, dkim, dmarc
-
-    def _check_spf(self, domain: str) -> str:
-        try:
-            answers = dns.resolver.resolve(domain, "TXT")
-            for rdata in answers:
-                txt = str(rdata).strip('"')
-                if txt.lower().startswith("v=spf1"):
-                    if " -all" in txt.lower():
-                        return "pass_strict"
-                    if "~all" in txt.lower() or "?all" in txt.lower():
-                        return "pass_soft"
-                    return "pass"
-            return "none"
-        except Exception as exc:
-            logger.debug("SPF check failed for %s: %s", domain, exc)
-            return "unknown"
-
-    def _check_dkim(self, domain: str) -> str:
-        selectors = ["default", "google", "selector1", "selector2", "k1"]
-        for selector in selectors:
-            dkim_domain = f"{selector}._domainkey.{domain}"
-            try:
-                answers = dns.resolver.resolve(dkim_domain, "TXT")
-                for rdata in answers:
-                    txt = str(rdata).strip('"')
-                    if "v=dkim1" in txt.lower() or "p=" in txt.lower():
-                        return "pass"
-            except Exception:
-                continue
-        return "none"
-
-    def _check_dmarc(self, domain: str) -> str:
-        try:
-            answers = dns.resolver.resolve(f"_dmarc.{domain}", "TXT")
-            for rdata in answers:
-                txt = str(rdata).strip('"').lower()
-                if txt.startswith("v=dmarc1"):
-                    if "p=reject" in txt:
-                        return "pass_strict"
-                    if "p=quarantine" in txt:
-                        return "pass_quarantine"
-                    return "pass"
-            return "none"
-        except Exception as exc:
-            logger.debug("DMARC check failed for %s: %s", domain, exc)
-            return "unknown"
 
     def _score_identity(
         self, email, spf: str, dkim: str, dmarc: str

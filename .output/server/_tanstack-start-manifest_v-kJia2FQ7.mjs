@@ -1,0 +1,178 @@
+//#region node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-kJia2FQ7.js
+var tsrStartManifest = () => ({ routes: {
+	__root__: {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/__root.tsx",
+		children: [
+			"/",
+			"/agents",
+			"/analytics",
+			"/approvals",
+			"/clients",
+			"/copilot",
+			"/dashboard",
+			"/exceptions",
+			"/inbox",
+			"/invoices",
+			"/login",
+			"/rules",
+			"/settings",
+			"/trust"
+		],
+		preloads: ["/assets/index-By_w88xV.js"],
+		scripts: [{ attrs: {
+			type: "module",
+			async: !0,
+			src: "/assets/index-By_w88xV.js"
+		} }]
+	},
+	"/agents": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/agents.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/agents-D_X4yzGS.js",
+			"/assets/ui-bits-C6TsRLHL.js",
+			"/assets/createLucideIcon-G1Dj9I4e.js",
+			"/assets/scan-line-CKnqs1WG.js",
+			"/assets/mail-CytzAS98.js",
+			"/assets/plug-HYWM2JXG.js"
+		]
+	},
+	"/analytics": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/analytics.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/analytics-DM2il-_h.js",
+			"/assets/ui-bits-C6TsRLHL.js",
+			"/assets/LineChart-wP1AgdLl.js",
+			"/assets/createLucideIcon-G1Dj9I4e.js",
+			"/assets/AreaChart-bF90_p-g.js",
+			"/assets/shield-check-CRE8vV3M.js"
+		]
+	},
+	"/approvals": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/approvals.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/approvals-C5MNmFic.js",
+			"/assets/ui-bits-C6TsRLHL.js",
+			"/assets/document-viewer-BS3LaXJo.js",
+			"/assets/createLucideIcon-G1Dj9I4e.js",
+			"/assets/circle-x-Bm8v6TVC.js",
+			"/assets/shield-alert-BMe303Pw.js"
+		]
+	},
+	"/clients": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/clients.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/clients-Cr_SO4_0.js",
+			"/assets/ui-bits-C6TsRLHL.js",
+			"/assets/LineChart-wP1AgdLl.js",
+			"/assets/createLucideIcon-G1Dj9I4e.js",
+			"/assets/mail-CytzAS98.js",
+			"/assets/shield-check-CRE8vV3M.js"
+		]
+	},
+	"/copilot": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/copilot.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/copilot-fEf7v6lv.js",
+			"/assets/ui-bits-C6TsRLHL.js",
+			"/assets/createLucideIcon-G1Dj9I4e.js",
+			"/assets/download-DVPIYzCu.js",
+			"/assets/paperclip-DgEdwfgl.js"
+		]
+	},
+	"/dashboard": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/dashboard.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/dashboard-BZn7cI-j.js",
+			"/assets/ui-bits-C6TsRLHL.js",
+			"/assets/LineChart-wP1AgdLl.js",
+			"/assets/createLucideIcon-G1Dj9I4e.js",
+			"/assets/scan-line-CKnqs1WG.js",
+			"/assets/AreaChart-bF90_p-g.js",
+			"/assets/mail-CytzAS98.js",
+			"/assets/refresh-cw-BukW42eS.js",
+			"/assets/shield-alert-BMe303Pw.js",
+			"/assets/zap-D2sy0Pw_.js"
+		]
+	},
+	"/exceptions": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/exceptions.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/exceptions-ClWkbJ2Y.js",
+			"/assets/ui-bits-C6TsRLHL.js",
+			"/assets/plus-iHabRmCn.js"
+		]
+	},
+	"/inbox": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/inbox.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/inbox-C20bWTGh.js",
+			"/assets/ui-bits-C6TsRLHL.js",
+			"/assets/document-viewer-BS3LaXJo.js",
+			"/assets/createLucideIcon-G1Dj9I4e.js",
+			"/assets/paperclip-DgEdwfgl.js",
+			"/assets/refresh-cw-BukW42eS.js",
+			"/assets/zap-D2sy0Pw_.js"
+		]
+	},
+	"/invoices": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/invoices.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/invoices-CX2sqJ9p.js",
+			"/assets/ui-bits-C6TsRLHL.js",
+			"/assets/refresh-cw-BukW42eS.js"
+		]
+	},
+	"/login": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/login.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/login-CFp9HR2x.js",
+			"/assets/createLucideIcon-G1Dj9I4e.js",
+			"/assets/loader-circle-Crhp-Dwa.js",
+			"/assets/mail-CytzAS98.js"
+		]
+	},
+	"/rules": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/rules.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/rules-CuN28dET.js",
+			"/assets/ui-bits-C6TsRLHL.js",
+			"/assets/createLucideIcon-G1Dj9I4e.js",
+			"/assets/plus-iHabRmCn.js",
+			"/assets/zap-D2sy0Pw_.js"
+		]
+	},
+	"/settings": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/settings.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/settings-2RSiQNiA.js",
+			"/assets/ui-bits-C6TsRLHL.js",
+			"/assets/createLucideIcon-G1Dj9I4e.js",
+			"/assets/mail-CytzAS98.js",
+			"/assets/plug-HYWM2JXG.js"
+		]
+	},
+	"/trust": {
+		filePath: "C:/Hackathons/hackarena 2.0/grand finale/aurora-tia-main/aurora-tia-main/src/routes/trust.tsx",
+		children: void 0,
+		preloads: [
+			"/assets/trust-hfOn9aQC.js",
+			"/assets/ui-bits-C6TsRLHL.js",
+			"/assets/createLucideIcon-G1Dj9I4e.js",
+			"/assets/circle-x-Bm8v6TVC.js"
+		]
+	}
+} });
+//#endregion
+export { tsrStartManifest };

@@ -1,7 +1,9 @@
 """FastAPI application entry point."""
 
+
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,35 +24,91 @@ logger = logging.getLogger("aurora")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
-    logger.info("Starting %s v%s [%s]", settings.app_name, settings.app_version, settings.environment)
+    logger.info("═══════════════════════════════════════════════════════")
+    logger.info(
+        "  Aurora TIA v%s [%s] starting up...",
+        settings.app_version,
+        settings.environment,
+    )
+    logger.info(
+        "  Gmail account: %s", settings.gmail_user_email or "NOT CONFIGURED"
+    )
+    logger.info(
+        "  Database: %s",
+        settings.database_url[:40] + "..." if len(settings.database_url) > 40 else settings.database_url,
+    )
 
-    # Hackathon Demo: Run sync and pipeline on startup (synchronous — no Celery needed)
-    import asyncio
+    # ── 1. Create all tables ───────────────────────────────────────────────────
+    try:
+        from app.core.database import engine, Base
+        # Import every model so SQLAlchemy knows about all tables
+        import app.models  # noqa: F401
 
-    async def startup_sync():
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("✓ Database tables verified / created")
+    except Exception as exc:
+        logger.error("✗ Failed to create database tables: %s", exc)
+
+    # ── 2. Seed default admin user if users table is empty ────────────────────
+    try:
+        from sqlalchemy import select
         from app.core.database import AsyncSessionLocal
-        from app.controllers import InboxController
-        from app.workers.tasks import process_all_pending
+        from app.core.security import hash_password
+        from app.models.user import User
 
-        # Step 1: Sync emails from swadeepbansode@gmail.com
-        async with AsyncSessionLocal() as db:
-            try:
-                logger.info("Syncing emails from Gmail (swadeepbansode@gmail.com)...")
-                result = await InboxController(db).sync_emails()
-                logger.info(f"Gmail sync completed: {result}")
-            except Exception as e:
-                logger.error(f"Gmail sync failed: {e}")
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(User).limit(1))
+            if result.scalar_one_or_none() is None:
+                admin = User(
+                    email="admin@aurora.local",
+                    hashed_password=hash_password("aurora123"),
+                    full_name="Aurora Admin",
+                    role="admin",
+                    is_superuser=True,
+                    is_active=True,
+                )
+                session.add(admin)
+                await session.commit()
+                logger.info("✓ Default admin user seeded (admin@aurora.local / aurora123)")
+            else:
+                logger.info("✓ Admin user already exists")
+    except Exception as exc:
+        logger.error("✗ Failed to seed admin user: %s", exc)
 
-        # Step 2: Run pipeline on any newly synced / pending emails
-        try:
-            logger.info("Running AI pipeline for pending emails...")
-            outcome = await process_all_pending()
-            logger.info(f"Pipeline complete: {outcome}")
-        except Exception as e:
-            logger.error(f"Pipeline failed: {e}")
+    # ── 3. Seed required business rules if missing ────────────────────────────
+    try:
+        from sqlalchemy import select
+        from app.core.database import AsyncSessionLocal
+        from app.models.approval import BusinessRule
 
+        RULES = [
+            {"name": "Auto-approve under $1,000", "condition_expression": "amount < 1000 AND vendor.trust > 85", "action": "approve + push ERP", "category": "auto_approval", "is_active": True},
+            {"name": "Flag duplicate within 30d", "condition_expression": "similar(invoice) > 0.95", "action": "queue: needs_review", "category": "duplicate", "is_active": True},
+            {"name": "Reject unknown domain + urgent keywords", "condition_expression": "vendor.unknown AND subject matches /urgent|wire/i", "action": "reject + alert security", "category": "fraud", "is_active": True},
+            {"name": "Multi-level approval > $10k", "condition_expression": "amount > 10000", "action": "request approval: manager → CFO", "category": "approval", "is_active": True},
+        ]
 
-    asyncio.create_task(startup_sync())
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(BusinessRule).limit(1))
+            if result.scalar_one_or_none() is None:
+                for rule in RULES:
+                    session.add(BusinessRule(**rule))
+                await session.commit()
+                logger.info("✓ Default business rules seeded")
+    except Exception as exc:
+        logger.error("✗ Failed to seed business rules: %s", exc)
+
+    # ── 4. Gmail token status ─────────────────────────────────────────────────
+    token_path = Path(settings.gmail_token_path)
+    if token_path.exists():
+        logger.info("✓ Gmail token found at %s", token_path)
+    else:
+        logger.warning("⚠ Gmail token NOT found at %s", token_path.resolve())
+        logger.warning("  → Run: python scripts/auth_gmail.py")
+
+    logger.info("✓ Aurora TIA backend ready")
+    logger.info("═══════════════════════════════════════════════════════")
 
     yield
     logger.info("Shutting down %s", settings.app_name)

@@ -1,0 +1,519 @@
+import { i as __toESM } from "../_runtime.mjs";
+import { a as require_jsx_runtime, i as useQueryClient, n as useQuery, o as require_react, t as useMutation } from "../_libs/react+tanstack__react-query.mjs";
+import { a as useAuth, r as api } from "./auth-context-rnFr6IQp.mjs";
+import { g as Link, l as useRouterState } from "../_libs/@tanstack/react-router+[...].mjs";
+import { n as toast } from "../_libs/sonner.mjs";
+import { H as FileText, L as LayoutDashboard, P as LogOut, Q as ChartColumn, Z as CircleCheck, _ as Search, at as Activity, c as TriangleAlert, d as Sparkles, f as Shield, h as Settings, i as X, j as Menu, nt as Bell, o as Users, s as Upload, v as ScrollText, z as Inbox } from "../_libs/lucide-react.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/ui-bits-nExllFl8.js
+var import_react = /* @__PURE__ */ __toESM(require_react());
+var import_jsx_runtime = require_jsx_runtime();
+function useDashboard() {
+	return useQuery({
+		queryKey: ["dashboard"],
+		queryFn: () => api.get("/analytics/dashboard"),
+		refetchInterval: 3e4
+	});
+}
+function useAgentsStatus() {
+	return useQuery({
+		queryKey: ["agents"],
+		queryFn: () => api.get("/agents/status"),
+		refetchInterval: 5e3
+	});
+}
+function useEmails(unreadOnly = false) {
+	return useQuery({
+		queryKey: ["emails", unreadOnly],
+		queryFn: () => api.get(`/emails?limit=50${unreadOnly ? "&unread_only=true" : ""}`),
+		refetchInterval: 15e3
+	});
+}
+function useEmail(id) {
+	return useQuery({
+		queryKey: ["email", id],
+		queryFn: () => api.get(`/emails/${id}`),
+		enabled: !!id
+	});
+}
+function useSyncEmails() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: () => api.post("/emails/sync"),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["emails"] });
+			qc.invalidateQueries({ queryKey: ["dashboard"] });
+		}
+	});
+}
+function useProcessEmails() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (emailIds) => api.post("/emails/process", emailIds?.length ? { email_ids: emailIds } : { process_all: true }),
+		onSuccess: (data) => {
+			toast.success(data.message || "Emails queued for processing");
+			qc.invalidateQueries({ queryKey: ["emails"] });
+			qc.invalidateQueries({ queryKey: ["invoices"] });
+			qc.invalidateQueries({ queryKey: ["dashboard"] });
+			qc.invalidateQueries({ queryKey: ["agents"] });
+		},
+		onError: (err) => {
+			toast.error(err.message || "Failed to process emails");
+		}
+	});
+}
+function useDeleteAllEmails() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: () => api.delete("/emails/all"),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["emails"] });
+			qc.invalidateQueries({ queryKey: ["invoices"] });
+			qc.invalidateQueries({ queryKey: ["dashboard"] });
+			qc.invalidateQueries({ queryKey: ["agents"] });
+		}
+	});
+}
+function useTrustCheck(emailId) {
+	return useQuery({
+		queryKey: ["trust", emailId],
+		queryFn: () => api.post("/trust/check", { email_id: emailId }),
+		enabled: !!emailId
+	});
+}
+function useInvoices(status, search) {
+	const params = new URLSearchParams();
+	if (status) params.set("status", status);
+	if (search) params.set("search", search);
+	const qs = params.toString();
+	return useQuery({
+		queryKey: [
+			"invoices",
+			status,
+			search
+		],
+		queryFn: () => api.get(`/invoice${qs ? `?${qs}` : ""}`),
+		refetchInterval: 2e4
+	});
+}
+function useApprovals() {
+	return useQuery({
+		queryKey: ["approvals"],
+		queryFn: () => api.get("/approvals"),
+		refetchInterval: 15e3
+	});
+}
+function useApprovalAction() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: ({ id, action, notes }) => api.post(`/approvals/${id}/${action}`, { notes }),
+		onSuccess: (data) => {
+			toast.success(data.message || "Action successful");
+			qc.invalidateQueries({ queryKey: ["approvals"] });
+			qc.invalidateQueries({ queryKey: ["invoices"] });
+			qc.invalidateQueries({ queryKey: ["exceptions"] });
+			qc.invalidateQueries({ queryKey: ["dashboard"] });
+		},
+		onError: (err) => {
+			toast.error(err.message || "Failed to perform action");
+		}
+	});
+}
+function useAnalyticsMonthly() {
+	return useQuery({
+		queryKey: ["analytics", "monthly"],
+		queryFn: () => api.get("/analytics/monthly")
+	});
+}
+function useAnalyticsRoi() {
+	return useQuery({
+		queryKey: ["analytics", "roi"],
+		queryFn: () => api.get("/analytics/roi")
+	});
+}
+function useCopilotChat() {
+	return useMutation({ mutationFn: (body) => api.post("/copilot/chat", body) });
+}
+function useClients() {
+	return useQuery({
+		queryKey: ["clients"],
+		queryFn: () => api.get("/clients")
+	});
+}
+function useExceptions() {
+	return useQuery({
+		queryKey: ["exceptions"],
+		queryFn: () => api.get("/exceptions"),
+		refetchInterval: 15e3
+	});
+}
+var navBase = [
+	{
+		to: "/",
+		icon: LayoutDashboard,
+		label: "Dashboard"
+	},
+	{
+		to: "/inbox",
+		icon: Inbox,
+		label: "Inbox",
+		badgeKey: "inbox"
+	},
+	{
+		to: "/invoices",
+		icon: FileText,
+		label: "Invoices"
+	},
+	{
+		to: "/exceptions",
+		icon: TriangleAlert,
+		label: "Exceptions",
+		badgeKey: "exceptions"
+	},
+	{
+		to: "/approvals",
+		icon: CircleCheck,
+		label: "Approvals"
+	},
+	{
+		to: "/analytics",
+		icon: ChartColumn,
+		label: "Analytics"
+	},
+	{
+		to: "/clients",
+		icon: Users,
+		label: "Clients"
+	},
+	{
+		to: "/rules",
+		icon: ScrollText,
+		label: "Business Rules"
+	},
+	{
+		to: "/copilot",
+		icon: Sparkles,
+		label: "AI Copilot"
+	},
+	{
+		to: "/trust",
+		icon: Shield,
+		label: "Trust Engine"
+	},
+	{
+		to: "/settings",
+		icon: Settings,
+		label: "Settings"
+	}
+];
+function AppLayout({ children }) {
+	const pathname = useRouterState({ select: (s) => s.location.pathname });
+	const [open, setOpen] = (0, import_react.useState)(false);
+	const { data: emails } = useEmails();
+	const { data: exceptions } = useExceptions();
+	const unreadCount = emails?.items?.filter((e) => !e.is_read).length ?? 0;
+	const exceptionCount = Object.values(exceptions?.columns ?? {}).reduce((n, col) => n + col.length, 0);
+	const nav = navBase.map((item) => ({
+		...item,
+		badge: item.badgeKey === "inbox" ? unreadCount : item.badgeKey === "exceptions" ? exceptionCount : void 0
+	}));
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "min-h-screen flex w-full",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", {
+				className: `fixed lg:sticky top-0 z-40 h-screen w-64 shrink-0 border-r border-sidebar-border bg-sidebar/80 backdrop-blur-xl transition-transform ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`,
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex h-16 items-center gap-3 px-5 border-b border-sidebar-border",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "relative h-9 w-9 rounded-xl grid place-items-center",
+						style: { background: "var(--gradient-aurora)" },
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sparkles, { className: "h-5 w-5 text-white" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "absolute inset-0 rounded-xl animate-aurora-pulse",
+							style: {
+								background: "var(--gradient-aurora)",
+								filter: "blur(12px)",
+								opacity: .6,
+								zIndex: -1
+							}
+						})]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "min-w-0",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "text-sm font-bold tracking-tight",
+							children: "Aurora TIA"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "text-[10px] uppercase tracking-wider text-muted-foreground",
+							children: "Touchless Invoice Agent"
+						})]
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("nav", {
+					className: "p-3 space-y-0.5 overflow-y-auto h-[calc(100vh-4rem)]",
+					children: [nav.map((item) => {
+						const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+						return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Link, {
+							to: item.to,
+							onClick: () => setOpen(false),
+							className: `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all ${active ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_var(--color-border)]" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`,
+							children: [
+								active && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "absolute left-0 h-6 w-0.5 rounded-r bg-primary" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(item.icon, { className: `h-4 w-4 shrink-0 ${active ? "text-primary" : ""}` }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "flex-1 truncate",
+									children: item.label
+								}),
+								item.badge != null && item.badge > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: `text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`,
+									children: item.badge
+								})
+							]
+						}, item.to);
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-6 mx-2 p-3 rounded-xl glass",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2 text-xs font-semibold",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "relative flex h-2 w-2",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "absolute inline-flex h-full w-full rounded-full bg-success opacity-75 animate-ping" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "relative inline-flex h-2 w-2 rounded-full bg-success" })]
+							}), "AI Engine Online"]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "mt-1 text-[11px] text-muted-foreground",
+							children: "All 8 agents healthy"
+						})]
+					})]
+				})]
+			}),
+			open && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "lg:hidden fixed inset-0 z-30 bg-black/50",
+				onClick: () => setOpen(false)
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex-1 min-w-0 flex flex-col",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TopBar, {
+					onMenu: () => setOpen((v) => !v),
+					open
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("main", {
+					className: "flex-1 p-6 lg:p-8",
+					children
+				})]
+			})
+		]
+	});
+}
+function TopBar({ onMenu, open }) {
+	const { auth, logout } = useAuth();
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("header", {
+		className: "sticky top-0 z-20 h-16 border-b border-border bg-background/60 backdrop-blur-xl",
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "h-full px-4 lg:px-8 flex items-center gap-3",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+					onClick: onMenu,
+					className: "lg:hidden p-2 rounded-lg hover:bg-accent",
+					children: open ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(X, { className: "h-5 w-5" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Menu, { className: "h-5 w-5" })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "relative flex-1 max-w-xl",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Search, { className: "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+						placeholder: "Search invoices, vendors, agents…  (⌘K)",
+						className: "w-full h-10 pl-10 pr-4 rounded-xl bg-muted/40 border border-border text-sm placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-ring"
+					})]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "ml-auto flex items-center gap-2",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							className: "hidden md:inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover-glow",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Upload, { className: "h-4 w-4" }), " Upload Invoice"]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							className: "h-10 w-10 grid place-items-center rounded-xl border border-border hover:bg-accent",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Activity, { className: "h-4 w-4 text-success" })
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							className: "relative h-10 w-10 grid place-items-center rounded-xl border border-border hover:bg-accent",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bell, { className: "h-4 w-4" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive" })]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "h-10 pl-1 pr-3 flex items-center gap-2 rounded-xl border border-border bg-background/50",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "h-8 w-8 rounded-lg grid place-items-center text-xs font-bold",
+								style: {
+									background: "var(--gradient-aurora)",
+									color: "white"
+								},
+								children: auth?.user?.full_name?.charAt(0).toUpperCase() || "A"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "hidden md:block leading-tight",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "text-xs font-semibold",
+									children: auth?.user?.full_name || "Anya Kapoor"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "text-[10px] text-muted-foreground capitalize",
+									children: auth?.user?.role || "Finance Lead"
+								})]
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							onClick: () => logout(),
+							title: "Log Out",
+							className: "h-10 w-10 grid place-items-center rounded-xl border border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LogOut, { className: "h-4 w-4" })
+						})
+					]
+				})
+			]
+		})
+	});
+}
+function PageHeader({ title, subtitle, actions }) {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 mb-6",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "min-w-0",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
+				className: "text-2xl lg:text-3xl font-bold tracking-tight truncate",
+				children: title
+			}), subtitle && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-1 text-sm text-muted-foreground",
+				children: subtitle
+			})]
+		}), actions && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "shrink-0 flex items-center gap-2",
+			children: actions
+		})]
+	});
+}
+function Card({ children, className = "" }) {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+		className: `glass rounded-2xl p-5 ${className}`,
+		children
+	});
+}
+function StatCard({ label, value, delta, icon: Icon, tone = "primary" }) {
+	const toneMap = {
+		primary: "text-primary",
+		success: "text-success",
+		warning: "text-warning",
+		ai: "text-[color:var(--ai)]",
+		destructive: "text-destructive"
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "glass rounded-2xl p-5 hover-glow relative overflow-hidden",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl",
+				style: { background: `var(--color-${tone === "ai" ? "ai" : tone})` }
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex items-start justify-between",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "text-xs font-medium uppercase tracking-wider text-muted-foreground",
+					children: label
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { className: `h-4 w-4 ${toneMap[tone]}` })]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "mt-3 text-3xl font-bold tracking-tight",
+				children: value
+			}),
+			delta && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: `mt-1 text-xs font-medium ${toneMap[tone]}`,
+				children: delta
+			})
+		]
+	});
+}
+function TrustRing({ score, size = 120 }) {
+	const r = size / 2 - 10;
+	const c = 2 * Math.PI * r;
+	const dash = score / 100 * c;
+	const color = score >= 80 ? "var(--success)" : score >= 60 ? "var(--warning)" : "var(--destructive)";
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "relative",
+		style: {
+			width: size,
+			height: size
+		},
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", {
+			width: size,
+			height: size,
+			className: "-rotate-90",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+				cx: size / 2,
+				cy: size / 2,
+				r,
+				stroke: "var(--border)",
+				strokeWidth: "8",
+				fill: "none"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+				cx: size / 2,
+				cy: size / 2,
+				r,
+				stroke: color,
+				strokeWidth: "8",
+				fill: "none",
+				strokeDasharray: `${dash} ${c}`,
+				strokeLinecap: "round",
+				style: { transition: "stroke-dasharray 1s ease" }
+			})]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "absolute inset-0 grid place-items-center",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "text-center",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "text-2xl font-bold",
+					children: score
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "text-[10px] text-muted-foreground uppercase tracking-wider",
+					children: "Trust"
+				})]
+			})
+		})]
+	});
+}
+function Badge({ children, tone = "default" }) {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+		className: `inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border ${{
+			default: "bg-muted text-muted-foreground border-border",
+			success: "bg-success/15 text-success border-success/20",
+			warning: "bg-warning/15 text-warning border-warning/20",
+			destructive: "bg-destructive/15 text-destructive border-destructive/20",
+			ai: "bg-[color:var(--ai)]/15 text-[color:var(--ai)] border-[color:var(--ai)]/20",
+			primary: "bg-primary/15 text-primary border-primary/20"
+		}[tone]}`,
+		children
+	});
+}
+function ConfidenceBar({ value }) {
+	const color = value >= 90 ? "var(--success)" : value >= 70 ? "var(--primary)" : "var(--warning)";
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "flex items-center gap-2",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "flex-1 h-1.5 rounded-full bg-muted overflow-hidden",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "h-full rounded-full transition-all",
+				style: {
+					width: `${value}%`,
+					background: color
+				}
+			})
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+			className: "text-xs font-semibold tabular-nums",
+			style: { color },
+			children: [value, "%"]
+		})]
+	});
+}
+function ThinkingDots() {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+		className: "inline-flex items-center gap-1",
+		children: [
+			0,
+			1,
+			2
+		].map((i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+			className: "h-1.5 w-1.5 rounded-full bg-[color:var(--ai)] animate-ai-think",
+			style: { animationDelay: `${i * .15}s` }
+		}, i))
+	});
+}
+//#endregion
+export { useSyncEmails as C, useProcessEmails as S, useDeleteAllEmails as _, PageHeader as a, useExceptions as b, TrustRing as c, useAnalyticsRoi as d, useApprovalAction as f, useDashboard as g, useCopilotChat as h, ConfidenceBar as i, useAgentsStatus as l, useClients as m, Badge as n, StatCard as o, useApprovals as p, Card as r, ThinkingDots as s, AppLayout as t, useAnalyticsMonthly as u, useEmail as v, useTrustCheck as w, useInvoices as x, useEmails as y };

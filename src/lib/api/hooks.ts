@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client";
+import { toast } from "sonner";
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
@@ -68,8 +69,25 @@ export function useSyncEmails() {
 export function useProcessEmails() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (emailIds?: string[]) =>
-      api.post("/emails/process", emailIds?.length ? { email_ids: emailIds } : { process_all: true }),
+    mutationFn: (emailIds?: string[]) => 
+      api.post<{ message?: string }>("/emails/process", emailIds?.length ? { email_ids: emailIds } : { process_all: true }),
+    onSuccess: (data) => {
+      toast.success(data.message || "Emails queued for processing");
+      qc.invalidateQueries({ queryKey: ["emails"] });
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["agents"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to process emails");
+    },
+  });
+}
+
+export function useDeleteAllEmails() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.delete<{ success: boolean; message: string }>("/emails/all"),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["emails"] });
       qc.invalidateQueries({ queryKey: ["invoices"] });
@@ -125,13 +143,17 @@ export function useApprovalAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, action, notes }: { id: string; action: "approve" | "reject" | "request-review"; notes?: string }) =>
-      api.post(`/approvals/${id}/${action}`, { notes }),
-    onSuccess: () => {
+      api.post<{ approval_id: string; status: string; message: string }>(`/approvals/${id}/${action}`, { notes }),
+    onSuccess: (data) => {
+      toast.success(data.message || "Action successful");
       qc.invalidateQueries({ queryKey: ["approvals"] });
       qc.invalidateQueries({ queryKey: ["invoices"] });
       qc.invalidateQueries({ queryKey: ["exceptions"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to perform action");
+    }
   });
 }
 
@@ -291,6 +313,7 @@ export type ApprovalItem = {
   id: string;
   invoice_id: string;
   invoice_number: string | null;
+  attachment_id: string | null;
   status: string;
   approval_status: string;
   reason: string;

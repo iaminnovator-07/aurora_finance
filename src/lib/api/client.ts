@@ -80,10 +80,27 @@ export async function apiRequest<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  // Hackathon Demo Mode: No Authorization header needed.
-  
+  const auth = getStoredAuth();
+  if (auth?.access_token) {
+    headers.set("Authorization", `Bearer ${auth.access_token}`);
+  }
+
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
+  // Handle token expiration
+  if (res.status === 401 && retry && auth?.refresh_token && !path.includes("/auth/")) {
+    const newToken = await refreshAccessToken();
+    if (newToken) {
+      headers.set("Authorization", `Bearer ${newToken}`);
+      const retryRes = await fetch(`${API_BASE}${path}`, { ...options, headers });
+      return handleResponse<T>(retryRes);
+    }
+  }
+
+  return handleResponse<T>(res);
+}
+
+async function handleResponse<T>(res: Response): Promise<T> {
   const json = await res.json().catch(() => ({}));
 
   if (!res.ok) {
@@ -110,48 +127,7 @@ export const api = {
     }),
   postForm: <T>(path: string, form: FormData) =>
     apiRequest<T>(path, { method: "POST", body: form }),
+  delete: <T>(path: string) => apiRequest<T>(path, { method: "DELETE" }),
 };
 
-function getMockDataForPath(path: string) {
-  if (path.includes("/emails")) {
-    return { items: [], total: 0 };
-  }
-  if (path.includes("/exceptions")) {
-    return { columns: { needs_review: [], waiting_approval: [], rejected: [], resolved: [] } };
-  }
-  if (path.includes("/analytics/dashboard")) {
-    return {
-      processed_today: 124,
-      touchless_percentage: 84.5,
-      hours_saved_today: 18,
-      pending_review: 5,
-      fraud_alerts: 1,
-      trust_avg: 92,
-      ai_accuracy: 98.2,
-      throughput_trend: [],
-      vendor_breakdown: [],
-      approval_breakdown: [],
-      recent_invoices: [],
-    };
-  }
-  if (path.includes("/agents/status")) {
-    return {
-      agents: [
-        { name: "Mail Intelligence", status: "active", task: "Watching Inbox", time: "12ms", conf: 100 },
-        { name: "OCR Extraction", status: "idle", task: "Standby", time: "-", conf: 100 },
-      ],
-      pipeline_running: true,
-      live_logs: [],
-    };
-  }
-  if (path.includes("/invoices")) {
-    return { items: [], total: 0 };
-  }
-  if (path.includes("/clients")) {
-    return { items: [], total: 0 };
-  }
-  if (path.includes("/approvals")) {
-    return { items: [], total: 0 };
-  }
-  return {};
-}
+

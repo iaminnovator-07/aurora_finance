@@ -97,6 +97,12 @@ async def get_email(email_id: UUID, db: DbSession, current_user: CurrentUser):
     return APIResponse(data=email)
 
 
+@inbox_router.delete("/all")
+async def delete_all_emails(db: DbSession, current_user: CurrentUser):
+    result = await InboxController(db).delete_all_emails()
+    return APIResponse(data=result, message="All emails deleted successfully")
+
+
 router.include_router(inbox_router)
 
 # ── Trust ─────────────────────────────────────────────────────────────────────
@@ -150,6 +156,25 @@ async def normalize_document(
 ):
     result = await DocumentController(db).normalize(extraction_id)
     return APIResponse(data=result, confidence=result.confidence)
+
+
+@doc_router.get("/{attachment_id}/view")
+async def view_document(
+    attachment_id: UUID, db: DbSession, current_user: CurrentUser
+):
+    from app.models.email import EmailAttachment
+    from app.core.exceptions import NotFoundError
+    import mimetypes
+
+    attachment = await db.get(EmailAttachment, attachment_id)
+    if not attachment or not attachment.storage_path:
+        raise NotFoundError("Attachment", str(attachment_id))
+    
+    media_type, _ = mimetypes.guess_type(attachment.storage_path)
+    if not media_type:
+        media_type = "application/octet-stream"
+
+    return FileResponse(attachment.storage_path, media_type=media_type, filename=attachment.filename)
 
 
 router.include_router(doc_router)
@@ -455,4 +480,52 @@ router.include_router(exceptions_router)
 
 @router.get("/health")
 async def health():
-    return APIResponse(data={"status": "healthy", "service": "aurora-tia-backend"})
+    from pathlib import Path
+    from app.config import get_settings
+    settings = get_settings()
+    token_exists = Path(settings.gmail_token_path).exists()
+    return APIResponse(data={
+        "status": "healthy",
+        "service": "aurora-tia-backend",
+        "gmail_token": "present" if token_exists else "missing",
+        "gmail_account": settings.gmail_user_email,
+    })
+
+
+# ── Gmail ─────────────────────────────────────────────────────────────────────
+
+gmail_router = APIRouter(prefix="/gmail", tags=["Gmail"])
+
+
+@gmail_router.get("/status")
+async def gmail_status():
+    """Check Gmail token status and provide authentication instructions."""
+    from pathlib import Path
+    from app.config import get_settings
+    settings = get_settings()
+    token_path = Path(settings.gmail_token_path)
+    creds_path = Path(settings.gmail_credentials_path)
+    return APIResponse(data={
+        "account": settings.gmail_user_email,
+        "token_exists": token_path.exists(),
+        "token_path": str(token_path.resolve()),
+        "credentials_exists": creds_path.exists(),
+        "credentials_path": str(creds_path.resolve()),
+        "auth_command": "cd backend && python scripts/auth_gmail.py",
+        "status": "ready" if token_path.exists() else "needs_auth",
+        "message": (
+            "Gmail is authenticated and ready to sync."
+            if token_path.exists()
+            else "Run 'python scripts/auth_gmail.py' to authenticate Gmail once."
+        ),
+    })
+
+
+@gmail_router.post("/sync")
+async def gmail_sync_direct(db: DbSession, current_user: CurrentUser):
+    """Direct Gmail sync endpoint (alias for /emails/sync)."""
+    result = await InboxController(db).sync_emails()
+    return APIResponse(data=result, message=result.message)
+
+
+router.include_router(gmail_router)

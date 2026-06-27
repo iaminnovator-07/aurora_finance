@@ -70,7 +70,7 @@ class CopilotService:
             "conversation_id": str(conversation.id),
             "reply": ai_response["text"],
             "confidence": ai_response["confidence"],
-            "context_summary": {
+            "data": {
                 "recent_invoices": len(context.get("recent_invoices", [])),
                 "recent_audit_logs": len(context.get("recent_audit_logs", [])),
             },

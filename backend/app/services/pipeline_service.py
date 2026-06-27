@@ -136,14 +136,21 @@ class PipelineService:
                 "rule_engine", email_id, self.rules.validate_invoice, invoice.id
             )
             result["stages"]["rules"] = {
-                "passed": rules_result["passed"],
-                "failed_count": rules_result["failed_count"],
-                "confidence": rules_result["confidence"],
+                "passed": rules_result.get("passed", True),
+                "failed_count": rules_result.get("failed_count", 0),
+                "confidence": rules_result.get("confidence", 80.0),
             }
+            
+            # Recalculate Final Trust Score
+            final_trust = await self.trust_engine.calculate_final_trust(email_id, invoice, rules_result)
+            trust.overall_score = final_trust["overall_score"]
+            trust.risk_level = final_trust["risk_level"]
+            result["stages"]["trust"]["overall_score"] = trust.overall_score
+            result["stages"]["trust"]["risk_level"] = trust.risk_level
 
             # Stage 6: Approval decision
             auto_approve = (
-                rules_result["passed"]
+                rules_result.get("passed", True)
                 and trust.overall_score >= self.settings.trust_auto_approve_threshold
                 and (invoice.confidence_score or 0) >= self.settings.confidence_auto_approve_threshold
             )
@@ -153,7 +160,9 @@ class PipelineService:
                 await self.invoice.invoice_repo.update(invoice)
                 result["stages"]["approval"] = {"action": "auto_approved", "confidence": 95.0}
             else:
-                failed_rules = [r for r in rules_result["rules"] if not r["passed"]]
+                # Use 'results' key (what rule_engine_service._format_response returns)
+                all_rules = rules_result.get("results", rules_result.get("rules", []))
+                failed_rules = [r for r in all_rules if not r.get("passed", True)]
                 await self.approval.request_review(
                     invoice.id,
                     reason=self._build_review_reason(trust, rules_result),
@@ -164,7 +173,12 @@ class PipelineService:
                     ai_suggestion=self._build_suggestion(failed_rules),
                     priority=10 if trust.risk_level == "high" else 5,
                 )
-                result["stages"]["approval"] = {"action": "queued_for_review", "confidence": 85.0}
+                result["stages"]["approval"] = {"action": "review_requested", "confidence": 100.0}
+
+            # Update vendor profile
+            from app.services.vendor_service import VendorService
+            vendor_service = VendorService(self.session)
+            await vendor_service.update_vendor_profile(invoice)
 
             # Stage 7: ERP export (for approved invoices)
             if auto_approve or invoice.status == InvoiceStatus.AUTO_APPROVED.value:
@@ -279,9 +293,12 @@ class PipelineService:
     @staticmethod
     def _build_review_reason(trust, rules_result: dict) -> str:
         parts = [f"Trust score {trust.overall_score} ({trust.risk_level} risk)"]
-        if not rules_result["passed"]:
-            failed = [r["rule_name"] for r in rules_result["rules"] if not r["passed"]]
-            parts.append(f"Failed rules: {', '.join(failed)}")
+        if not rules_result.get("passed", True):
+            # Support both 'rules' and 'results' keys
+            all_rules = rules_result.get("results", rules_result.get("rules", []))
+            failed = [r.get("rule_name", r.get("name", "unknown")) for r in all_rules if not r.get("passed", True)]
+            if failed:
+                parts.append(f"Failed rules: {', '.join(failed)}")
         return "; ".join(parts)
 
     @staticmethod

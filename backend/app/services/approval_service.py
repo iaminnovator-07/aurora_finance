@@ -114,14 +114,62 @@ class ApprovalService:
         }
 
     async def list_queue_dicts(self, status: str | None = None) -> list[dict]:
+        from app.models.email import Email
+        from sqlalchemy.orm import selectinload
         items = await self.list_queue(status)
         result = []
         for item in items:
             invoice = await self.invoice_repo.get_by_id(item.invoice_id)
+            attachment_id = None
+            if invoice and invoice.email_id:
+                # Need to get email with attachments
+                from sqlalchemy import select
+                stmt = select(Email).options(selectinload(Email.attachments)).where(Email.id == invoice.email_id)
+                email_res = await self.session.execute(stmt)
+                email = email_res.scalar_one_or_none()
+                if email and email.attachments:
+                    attachment_id = str(email.attachments[0].id)
+                    
+            # Generate simulated bounding boxes with error highlights based on failed rules
+            bounding_boxes = [
+                {"id": "vendor", "label": "Vendor", "color": "#3b82f6", "top": 10, "left": 10, "width": 30, "height": 5},
+                {"id": "invoice_number", "label": "Invoice #", "color": "#22c55e", "top": 15, "left": 70, "width": 20, "height": 4},
+                {"id": "amount", "label": "Amount", "color": "#f97316", "top": 85, "left": 70, "width": 20, "height": 5},
+                {"id": "tax", "label": "Tax", "color": "#a855f7", "top": 80, "left": 70, "width": 20, "height": 4},
+                {"id": "gst", "label": "GST", "color": "#0ea5e9", "top": 20, "left": 10, "width": 25, "height": 4},
+                {"id": "po", "label": "PO Number", "color": "#ec4899", "top": 20, "left": 70, "width": 20, "height": 4},
+            ]
+            
+            failed_rules_list = item.failed_rules or []
+            failed_names = [r.get("rule_name", "").lower() for r in failed_rules_list]
+            
+            error_mapping = {
+                "amount calculation": "amount",
+                "tax calculation": "tax",
+                "duplicate check": "invoice_number",
+                "missing required fields": "gst", # simplified mapping
+            }
+            
+            for box in bounding_boxes:
+                # Flag boxes with errors
+                for rule in failed_rules_list:
+                    r_name = rule.get("rule_name", "").lower()
+                    mapped_id = error_mapping.get(r_name)
+                    if mapped_id == box["id"] or (r_name == "missing required fields" and ("gst" in rule.get("reason", "").lower() and box["id"] == "gst")):
+                        box["color"] = "#ef4444" # Red for error
+                        box["isActive"] = True
+                        box["error_details"] = {
+                            "severity": rule.get("severity", "high"),
+                            "root_cause": rule.get("reason", "Validation failed"),
+                            "suggested_fix": f"Review {box['label']} in document",
+                            "business_impact": "Compliance risk"
+                        }
+                    
             result.append({
                 "id": item.id,
                 "invoice_id": item.invoice_id,
                 "invoice_number": invoice.invoice_number if invoice else None,
+                "attachment_id": attachment_id,
                 "status": item.status,
                 "approval_status": item.approval_status,
                 "reason": item.reason,
@@ -131,6 +179,7 @@ class ApprovalService:
                 "confidence_score": item.confidence_score,
                 "trust_score": item.trust_score,
                 "failed_rules": item.failed_rules,
+                "bounding_boxes": bounding_boxes,
                 "assignee_name": None,
                 "created_at": item.created_at,
             })

@@ -26,12 +26,12 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://localhost:3000,http://localhost:8080"
 
     # Database
-    database_backend: Literal["postgresql", "firestore"] = "postgresql"
+    database_backend: Literal["postgresql", "firestore", "sqlite"] = "sqlite"
     database_url: str = Field(
-        default="postgresql+asyncpg://aurora:aurora@localhost:5432/aurora_tia"
+        default="sqlite+aiosqlite:///./aurora.db"
     )
     database_url_sync: str = Field(
-        default="postgresql://aurora:aurora@localhost:5432/aurora_tia"
+        default="sqlite:///./aurora.db"
     )
 
     # Firebase / Firestore
@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     # Gmail
     gmail_credentials_path: str = "./credentials/gmail_credentials.json"
     gmail_token_path: str = "./credentials/gmail_token.json"
-    gmail_user_email: str = ""
+    gmail_user_email: str = "swadeepbansode2007@gmail.com"
 
     # Business rules
     confidence_auto_approve_threshold: float = 90.0

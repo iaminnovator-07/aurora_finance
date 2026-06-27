@@ -110,7 +110,15 @@ class DocumentService:
             ) from exc
 
         doc_type = await self.classify(ocr_result["raw_text"], attachment.content_type)
-        normalized = await self.normalize(ocr_result["extracted_data"], ocr_result["raw_text"])
+        
+        # Get email domain for confidence engine
+        from app.models.email import Email
+        email_domain = ""
+        email_res = await self.session.get(Email, attachment.email_id)
+        if email_res and email_res.from_email:
+            email_domain = email_res.from_email.split("@")[-1] if "@" in email_res.from_email else ""
+
+        normalized = await self.normalize(ocr_result["extracted_data"], ocr_result["raw_text"], email_domain)
 
         elapsed_ms = int((time.perf_counter() - start) * 1000)
         extraction = DocumentExtraction(
@@ -119,7 +127,7 @@ class DocumentService:
             raw_text=ocr_result["raw_text"],
             extracted_data=ocr_result["extracted_data"],
             normalized_data=normalized,
-            confidence=float(ocr_result.get("confidence", normalized.get("confidence", 0))),
+            confidence=float(normalized.get("confidence", 0)),
             field_confidences=normalized.get("field_confidences"),
             classification=doc_type,
             ocr_engine=ocr_result.get("ocr_engine"),
@@ -159,12 +167,23 @@ class DocumentService:
         ext = await self.extraction_repo.get_by_id(extraction_id)
         if not ext:
             raise NotFoundError("DocumentExtraction", str(extraction_id))
-        normalized = await self.normalize(ext.extracted_data, ext.raw_text or "")
+        
+        email_domain = ""
+        attachment = await self.attachment_repo.get_by_id(ext.attachment_id)
+        if attachment:
+            from app.models.email import Email
+            email_res = await self.session.get(Email, attachment.email_id)
+            if email_res and email_res.from_email:
+                email_domain = email_res.from_email.split("@")[-1] if "@" in email_res.from_email else ""
+                
+        normalized = await self.normalize(ext.extracted_data, ext.raw_text or "", email_domain)
         ext.normalized_data = normalized
+        ext.confidence = normalized.get("confidence", ext.confidence)
+        ext.field_confidences = normalized.get("field_confidences", {})
         await self.extraction_repo.update(ext)
         return {
             "normalized_data": normalized,
-            "confidence": normalized.get("confidence", ext.confidence),
+            "confidence": ext.confidence,
             "erp_mapping": {
                 "employee": "Employee Name",
                 "hours": "Quantity",
@@ -204,11 +223,11 @@ class DocumentService:
         }
         return mapping.get(doc_class, base_type)
 
-    async def normalize(self, extracted_data: dict, raw_text: str) -> dict:
+    async def normalize(self, extracted_data: dict, raw_text: str, email_domain: str = "") -> dict:
         prompt = (
             "Normalize the following extracted document fields into a consistent JSON structure "
             "with keys: employee, hours, rate, date, company, project, ot_hours, subtotal, tax, total, currency. "
-            "Include field_confidences map and overall confidence.\n\n"
+            "Do NOT include random field_confidences, only the raw values.\n\n"
             f"Extracted: {extracted_data}\n\nRaw text excerpt:\n{raw_text[:2000]}"
         )
         ai_result = await self.gemini.generate_json(prompt)
@@ -225,8 +244,6 @@ class DocumentService:
             "tax": self._to_decimal(ai_result.get("tax")),
             "total": self._to_decimal(ai_result.get("total")),
             "currency": ai_result.get("currency", "USD"),
-            "confidence": ai_result.get("_confidence") or ai_result.get("confidence") or extracted_data.get("confidence", 0),
-            "field_confidences": ai_result.get("field_confidences", {}),
             "source": ai_result.get("_source", "ocr"),
         }
 
@@ -236,6 +253,19 @@ class DocumentService:
             normalized["subtotal"] = float(hours) * float(rate)
         if not normalized.get("total") and normalized.get("subtotal"):
             normalized["total"] = normalized["subtotal"]
+            
+        from app.services.confidence_engine import ConfidenceEngineService
+        confidence_engine = ConfidenceEngineService(self.session)
+        field_confidences = await confidence_engine.calculate_confidence(normalized, raw_text, email_domain)
+        
+        # Overall confidence is average of available fields
+        if field_confidences:
+            overall_confidence = sum(field_confidences.values()) / len(field_confidences)
+        else:
+            overall_confidence = 50.0
+            
+        normalized["field_confidences"] = field_confidences
+        normalized["confidence"] = overall_confidence
 
         return normalized
 

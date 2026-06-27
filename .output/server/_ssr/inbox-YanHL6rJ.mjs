@@ -1,0 +1,300 @@
+import { i as __toESM } from "../_runtime.mjs";
+import { a as require_jsx_runtime, o as require_react } from "../_libs/react+tanstack__react-query.mjs";
+import { D as Paperclip, S as RefreshCw, f as Shield, r as Zap, u as Trash2 } from "../_libs/lucide-react.mjs";
+import { C as useSyncEmails, S as useProcessEmails, _ as useDeleteAllEmails, a as PageHeader, c as TrustRing, n as Badge, r as Card, t as AppLayout, v as useEmail, y as useEmails } from "./ui-bits-nExllFl8.mjs";
+import { t as DocumentViewer } from "./document-viewer-DImNXlHr.mjs";
+import { t as formatDistanceToNow } from "../_libs/date-fns.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/inbox-YanHL6rJ.js
+var import_react = /* @__PURE__ */ __toESM(require_react());
+var import_jsx_runtime = require_jsx_runtime();
+function Inbox() {
+	const [filter, setFilter] = (0, import_react.useState)("all");
+	const { data, isLoading, refetch } = useEmails(filter === "unread");
+	const emails = data?.items ?? [];
+	const [selectedId, setSelectedId] = (0, import_react.useState)(void 0);
+	const activeId = selectedId ?? emails[0]?.id;
+	const { data: selected } = useEmail(activeId);
+	const sync = useSyncEmails();
+	const process = useProcessEmails();
+	const deleteAll = useDeleteAllEmails();
+	const trust = selected?.trust_score ?? 0;
+	const [activeAttachment, setActiveAttachment] = (0, import_react.useState)(null);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AppLayout, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PageHeader, {
+		title: "Inbox",
+		subtitle: "Aurora monitors your AP mailbox in real time.",
+		actions: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "flex gap-2",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+					onClick: () => {
+						if (window.confirm("Are you sure you want to delete all emails? This cannot be undone.")) deleteAll.mutate();
+					},
+					disabled: deleteAll.isPending,
+					className: "h-10 px-3 rounded-xl border border-destructive text-destructive text-sm inline-flex items-center gap-2 hover:bg-destructive/10",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" }), " Delete All"]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+					onClick: () => sync.mutate(),
+					disabled: sync.isPending,
+					className: "h-10 px-3 rounded-xl border border-border text-sm inline-flex items-center gap-2 hover:bg-accent",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RefreshCw, { className: `h-4 w-4 ${sync.isPending ? "animate-spin" : ""}` }), " Sync"]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+					onClick: () => activeId && process.mutate([activeId]),
+					disabled: process.isPending || !activeId,
+					className: "h-10 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium inline-flex items-center gap-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Zap, { className: "h-4 w-4" }), " Process Now"]
+				})
+			]
+		})
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "grid lg:grid-cols-[380px_1fr] gap-4 h-[calc(100vh-12rem)]",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+			className: "!p-0 overflow-hidden flex flex-col",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "p-3 border-b border-border flex items-center gap-2 text-xs",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						onClick: () => setFilter("all"),
+						className: `px-2.5 py-1 rounded-md ${filter === "all" ? "bg-primary/15 text-primary font-medium" : "hover:bg-accent text-muted-foreground"}`,
+						children: ["All · ", data?.total ?? 0]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						onClick: () => setFilter("unread"),
+						className: `px-2.5 py-1 rounded-md ${filter === "unread" ? "bg-primary/15 text-primary font-medium" : "hover:bg-accent text-muted-foreground"}`,
+						children: "Unread"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						onClick: () => refetch(),
+						className: "ml-auto p-1 hover:bg-accent rounded",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RefreshCw, { className: "h-3.5 w-3.5" })
+					})
+				]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "overflow-y-auto flex-1",
+				children: [isLoading && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "p-4 text-sm text-muted-foreground",
+					children: "Loading emails…"
+				}), emails.map((e) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+					onClick: () => {
+						setSelectedId(e.id);
+						setActiveAttachment(null);
+					},
+					className: `w-full text-left px-4 py-3 border-b border-border/60 hover:bg-accent/40 transition ${activeId === e.id ? "bg-accent/60" : ""}`,
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center justify-between gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex items-center gap-2 min-w-0",
+								children: [!e.is_read && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "h-2 w-2 rounded-full bg-primary shrink-0" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: `text-sm truncate ${!e.is_read ? "font-semibold" : ""}`,
+									children: e.from_name ?? e.from_email
+								})]
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-[10px] text-muted-foreground shrink-0",
+								children: formatDistanceToNow(new Date(e.received_at), { addSuffix: false })
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "mt-0.5 text-xs truncate text-muted-foreground",
+							children: e.subject
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "mt-2 flex items-center gap-1.5",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Badge, {
+									tone: (e.trust_score ?? 0) >= 80 ? "success" : (e.trust_score ?? 0) >= 60 ? "warning" : "destructive",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Shield, { className: "h-2.5 w-2.5" }),
+										" ",
+										e.trust_score ?? "—"
+									]
+								}),
+								e.attachment_count > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Badge, { children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Paperclip, { className: "h-2.5 w-2.5" }),
+									" ",
+									e.attachment_count
+								] }),
+								e.priority === "high" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
+									tone: "destructive",
+									children: "High"
+								})
+							]
+						})
+					]
+				}, e.id))]
+			})]
+		}), activeAttachment ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "relative",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+				onClick: () => setActiveAttachment(null),
+				className: "absolute top-4 right-4 z-50 h-8 w-8 bg-black/50 text-white rounded-full grid place-items-center hover:bg-black/70 transition",
+				children: "×"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DocumentViewer, {
+				attachmentId: activeAttachment.id,
+				filename: activeAttachment.name,
+				contentType: activeAttachment.type
+			})]
+		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Card, {
+			className: "!p-0 overflow-hidden flex flex-col",
+			children: !selected ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "flex-1 grid place-items-center text-muted-foreground text-sm",
+				children: "Select an email"
+			}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "p-4 border-b border-border",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+					className: "font-semibold truncate",
+					children: selected.subject
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "text-xs text-muted-foreground mt-0.5 truncate",
+					children: ["From ", selected.from_email]
+				})]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "grid lg:grid-cols-2 divide-x divide-border overflow-y-auto flex-1",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "p-5 space-y-4",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-3",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "h-10 w-10 rounded-xl grid place-items-center text-sm font-bold",
+								style: { background: "var(--gradient-aurora)" },
+								children: (selected.from_name ?? selected.from_email)[0]?.toUpperCase()
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "text-sm font-semibold",
+								children: selected.from_name ?? selected.from_email
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "text-xs text-muted-foreground",
+								children: "to ap@yourcompany.com"
+							})] })]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap",
+							children: selected.body_text ?? selected.ai_summary ?? "No body content"
+						}),
+						selected.attachments.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "rounded-xl border border-border p-3 bg-background/40",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "text-xs font-semibold mb-2 flex items-center gap-2",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Paperclip, { className: "h-3.5 w-3.5" }), " Attachments (Click to preview)"]
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "flex gap-2 flex-wrap",
+								children: selected.attachments.map((a) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+									onClick: () => setActiveAttachment({
+										id: a.id,
+										name: a.filename,
+										type: a.content_type
+									}),
+									className: "flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background/60 hover:bg-accent hover:border-primary/30 transition text-left",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "h-8 w-8 grid place-items-center rounded bg-primary/15 text-primary text-[10px] font-bold",
+										children: "DOC"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-xs",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "font-medium",
+											children: a.filename
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "text-muted-foreground",
+											children: [Math.round(a.size_bytes / 1024), " KB"]
+										})]
+									})]
+								}, a.id))
+							})]
+						})
+					]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "p-5 space-y-4 bg-background/20",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center justify-between",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "text-xs font-semibold uppercase tracking-wider text-[color:var(--ai)]",
+								children: "Aurora Analysis"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
+								tone: "ai",
+								children: "AI"
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-4",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrustRing, {
+								score: trust,
+								size: 90
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex-1 space-y-2",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-xs",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-muted-foreground",
+												children: "Detected intent:"
+											}),
+											" ",
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: selected.intent?.replace(/_/g, " ") ?? "Analyzing…" })
+										]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-xs",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-muted-foreground",
+												children: "Priority:"
+											}),
+											" ",
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: selected.priority })
+										]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-xs",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-muted-foreground",
+												children: "Stage:"
+											}),
+											" ",
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: selected.pipeline_stage ?? "received" })
+										]
+									})
+								]
+							})]
+						}),
+						selected.ai_summary && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "rounded-xl border border-border p-3 text-xs text-muted-foreground",
+							children: selected.ai_summary
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "rounded-xl p-3 border border-[color:var(--ai)]/30 bg-[color:var(--ai)]/5",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "text-xs font-semibold text-[color:var(--ai)] mb-1",
+									children: "Suggested action"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "text-sm",
+									children: selected.suggested_action ?? "Run Process Now to analyze."
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "mt-3 grid grid-cols-2 gap-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+										onClick: () => activeId && process.mutate([activeId]),
+										disabled: process.isPending,
+										className: "h-9 rounded-lg bg-success text-success-foreground text-xs font-semibold inline-flex items-center justify-center gap-1",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Zap, { className: "h-3.5 w-3.5" }), " Process"]
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+										onClick: () => sync.mutate(),
+										className: "h-9 rounded-lg border border-border text-xs font-semibold inline-flex items-center justify-center gap-1",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RefreshCw, { className: "h-3.5 w-3.5" }), " Re-sync"]
+									})]
+								})
+							]
+						})
+					]
+				})]
+			})] })
+		})]
+	})] });
+}
+//#endregion
+export { Inbox as component };

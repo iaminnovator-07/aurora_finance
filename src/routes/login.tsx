@@ -8,17 +8,19 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { login, demoLogin } = useAuth();
+  const { login, register } = useAuth();
   const router = useRouter();
   
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!email || !password || (!isLogin && !fullName)) {
       setError("Please fill in all fields.");
       return;
     }
@@ -26,20 +28,20 @@ function LoginPage() {
     setLoading(true);
     
     try {
-      await login(email, password);
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        await register(email, password, fullName);
+      }
+      
       // Wait for auth context to update, then redirect
       setTimeout(() => {
         router.navigate({ to: "/dashboard" });
       }, 500);
     } catch (err: any) {
-      setError("Invalid credentials. Please try again.");
+      setError(err?.message || "Invalid credentials. Please try again.");
       setLoading(false);
     }
-  };
-
-  const handleDemo = () => {
-    demoLogin();
-    router.navigate({ to: "/dashboard" });
   };
 
   return (
@@ -53,13 +55,19 @@ function LoginPage() {
           <div className="h-14 w-14 mx-auto rounded-2xl grid place-items-center mb-6 shadow-xl" style={{ background: "var(--gradient-aurora)" }}>
             <span className="text-white text-2xl font-bold">A</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome Back</h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome</h1>
           <p className="text-muted-foreground text-sm">
-            Sign in to access the Aurora TIA platform.
+            {isLogin ? "Sign in to access the Aurora TIA platform." : "Create a new account to get started."}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="glass p-8 rounded-3xl border border-border/50 shadow-2xl relative z-10">
+          
+          <div className="flex bg-muted p-1 rounded-xl mb-6">
+            <button type="button" onClick={() => {setIsLogin(true); setError("");}} className={`flex-1 py-2 text-sm font-medium rounded-lg transition ${isLogin ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Log In</button>
+            <button type="button" onClick={() => {setIsLogin(false); setError("");}} className={`flex-1 py-2 text-sm font-medium rounded-lg transition ${!isLogin ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>Register</button>
+          </div>
+
           {error && (
             <div className="mb-6 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium text-center">
               {error}
@@ -67,6 +75,21 @@ function LoginPage() {
           )}
 
           <div className="space-y-5">
+            {!isLogin && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Full Name</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full h-12 px-4 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm"
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Email Address</label>
               <div className="relative">
@@ -105,19 +128,8 @@ function LoginPage() {
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <>Log In <ArrowRight className="h-4 w-4" /></>
+                <>{isLogin ? "Log In" : "Register"} <ArrowRight className="h-4 w-4" /></>
               )}
-            </button>
-          </div>
-          
-          <div className="mt-6 pt-6 border-t border-border text-center">
-            <p className="text-sm text-muted-foreground mb-4">Don't want to set up the backend?</p>
-            <button
-              type="button"
-              onClick={handleDemo}
-              className="w-full h-10 rounded-xl bg-secondary text-secondary-foreground font-medium text-sm transition hover:bg-secondary/80"
-            >
-              Enter Demo Mode
             </button>
           </div>
         </form>

@@ -6,7 +6,7 @@ type AuthContextValue = {
   auth: StoredAuth | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  demoLogin: () => void;
+  register: (email: string, password: string, fullName: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -15,24 +15,28 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 // DEV_CREDENTIALS removed. User must explicitly log in.
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const defaultSession: StoredAuth = {
-    access_token: "demo_access_token",
-    refresh_token: "demo_refresh_token",
-    user: {
-      id: "00000000-0000-0000-0000-000000000000",
-      email: "demo@auroratia.com",
-      full_name: "Demo Admin",
-      role: "admin",
-    }
+  const defaultUser = {
+    id: "hackathon-user",
+    email: "demo@aurora.local",
+    full_name: "Demo Admin",
+    role: "admin",
   };
 
-  const [auth, setAuth] = useState<StoredAuth | null>(defaultSession);
+  const [auth, setAuth] = useState<StoredAuth | null>({
+    access_token: "dummy",
+    refresh_token: "dummy",
+    user: defaultUser,
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Demo Mode: We're already logged in by default.
+    // Always auto-login for hackathon mode
+    setStoredAuth({
+      access_token: "dummy",
+      refresh_token: "dummy",
+      user: defaultUser,
+    });
   }, []);
-
 
   const login = async (email: string, password: string) => {
     const data = await api.post<{
@@ -48,16 +52,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuth(session);
   };
 
-  const demoLogin = () => {
+  const register = async (email: string, password: string, full_name: string) => {
+    const data = await api.post<{
+      user: StoredAuth["user"];
+      tokens: { access_token: string; refresh_token: string };
+    }>("/auth/register", { email, password, full_name });
     const session: StoredAuth = {
-      access_token: "demo_access_token",
-      refresh_token: "demo_refresh_token",
-      user: {
-        id: "demo-user-id",
-        email: "demo@auroratia.com",
-        full_name: "Demo User",
-        role: "admin",
-      }
+      access_token: data.tokens.access_token,
+      refresh_token: data.tokens.refresh_token,
+      user: data.user,
     };
     setStoredAuth(session);
     setAuth(session);
@@ -69,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ auth, isLoading, login, demoLogin, logout }}>
+    <AuthContext.Provider value={{ auth, isLoading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

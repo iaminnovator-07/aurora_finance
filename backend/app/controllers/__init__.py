@@ -242,6 +242,15 @@ class InboxController:
             message=f"Pipeline completed for {len(email_ids)} email(s)",
         )
 
+    async def delete_all_emails(self) -> dict:
+        from sqlalchemy import delete
+        from app.models.email import Email
+
+        # This will cascade delete attachments and related entries in other tables (like trust score, extractions etc. if set up)
+        await self.email_repo.session.execute(delete(Email))
+        await self.email_repo.session.commit()
+        return {"success": True, "message": "All emails deleted successfully"}
+
 
 class TrustController:
     def __init__(self, session: AsyncSession):
