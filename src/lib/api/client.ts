@@ -75,22 +75,14 @@ export async function apiRequest<T>(
   options: RequestInit = {},
   retry = true,
 ): Promise<T> {
-  const auth = getStoredAuth();
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
-  if (auth?.access_token) {
-    headers.set("Authorization", `Bearer ${auth.access_token}`);
-  }
 
+  // Hackathon Demo Mode: No Authorization header needed.
+  
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-
-  if (res.status === 401 && retry && auth?.refresh_token) {
-    const newToken = await refreshAccessToken();
-    if (newToken) return apiRequest<T>(path, options, false);
-    setStoredAuth(null);
-  }
 
   const json = await res.json().catch(() => ({}));
 
@@ -119,3 +111,47 @@ export const api = {
   postForm: <T>(path: string, form: FormData) =>
     apiRequest<T>(path, { method: "POST", body: form }),
 };
+
+function getMockDataForPath(path: string) {
+  if (path.includes("/emails")) {
+    return { items: [], total: 0 };
+  }
+  if (path.includes("/exceptions")) {
+    return { columns: { needs_review: [], waiting_approval: [], rejected: [], resolved: [] } };
+  }
+  if (path.includes("/analytics/dashboard")) {
+    return {
+      processed_today: 124,
+      touchless_percentage: 84.5,
+      hours_saved_today: 18,
+      pending_review: 5,
+      fraud_alerts: 1,
+      trust_avg: 92,
+      ai_accuracy: 98.2,
+      throughput_trend: [],
+      vendor_breakdown: [],
+      approval_breakdown: [],
+      recent_invoices: [],
+    };
+  }
+  if (path.includes("/agents/status")) {
+    return {
+      agents: [
+        { name: "Mail Intelligence", status: "active", task: "Watching Inbox", time: "12ms", conf: 100 },
+        { name: "OCR Extraction", status: "idle", task: "Standby", time: "-", conf: 100 },
+      ],
+      pipeline_running: true,
+      live_logs: [],
+    };
+  }
+  if (path.includes("/invoices")) {
+    return { items: [], total: 0 };
+  }
+  if (path.includes("/clients")) {
+    return { items: [], total: 0 };
+  }
+  if (path.includes("/approvals")) {
+    return { items: [], total: 0 };
+  }
+  return {};
+}

@@ -7,12 +7,13 @@ import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyAi-HGrfQ1DKNSVB5zCX7CSW5xpHVlc82I",
+  authDomain: "aurora-finance-os.firebaseapp.com",
+  projectId: "aurora-finance-os",
+  storageBucket: "aurora-finance-os.firebasestorage.app",
+  messagingSenderId: "152843013248",
+  appId: "1:152843013248:web:3647b433739edec2afea65",
+  measurementId: "G-7FZ2TS1GRL"
 };
 
 let app: FirebaseApp | null = null;

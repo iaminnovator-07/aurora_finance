@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrustRouteImport } from './routes/trust'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RulesRouteImport } from './routes/rules'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as ExceptionsRouteImport } from './routes/exceptions'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CopilotRouteImport } from './routes/copilot'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
@@ -37,6 +39,11 @@ const RulesRoute = RulesRouteImport.update({
   path: '/rules',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InvoicesRoute = InvoicesRouteImport.update({
   id: '/invoices',
   path: '/invoices',
@@ -50,6 +57,11 @@ const InboxRoute = InboxRouteImport.update({
 const ExceptionsRoute = ExceptionsRouteImport.update({
   id: '/exceptions',
   path: '/exceptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CopilotRoute = CopilotRouteImport.update({
@@ -90,9 +102,11 @@ export interface FileRoutesByFullPath {
   '/approvals': typeof ApprovalsRoute
   '/clients': typeof ClientsRoute
   '/copilot': typeof CopilotRoute
+  '/dashboard': typeof DashboardRoute
   '/exceptions': typeof ExceptionsRoute
   '/inbox': typeof InboxRoute
   '/invoices': typeof InvoicesRoute
+  '/login': typeof LoginRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
   '/trust': typeof TrustRoute
@@ -104,9 +118,11 @@ export interface FileRoutesByTo {
   '/approvals': typeof ApprovalsRoute
   '/clients': typeof ClientsRoute
   '/copilot': typeof CopilotRoute
+  '/dashboard': typeof DashboardRoute
   '/exceptions': typeof ExceptionsRoute
   '/inbox': typeof InboxRoute
   '/invoices': typeof InvoicesRoute
+  '/login': typeof LoginRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
   '/trust': typeof TrustRoute
@@ -119,9 +135,11 @@ export interface FileRoutesById {
   '/approvals': typeof ApprovalsRoute
   '/clients': typeof ClientsRoute
   '/copilot': typeof CopilotRoute
+  '/dashboard': typeof DashboardRoute
   '/exceptions': typeof ExceptionsRoute
   '/inbox': typeof InboxRoute
   '/invoices': typeof InvoicesRoute
+  '/login': typeof LoginRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
   '/trust': typeof TrustRoute
@@ -135,9 +153,11 @@ export interface FileRouteTypes {
     | '/approvals'
     | '/clients'
     | '/copilot'
+    | '/dashboard'
     | '/exceptions'
     | '/inbox'
     | '/invoices'
+    | '/login'
     | '/rules'
     | '/settings'
     | '/trust'
@@ -149,9 +169,11 @@ export interface FileRouteTypes {
     | '/approvals'
     | '/clients'
     | '/copilot'
+    | '/dashboard'
     | '/exceptions'
     | '/inbox'
     | '/invoices'
+    | '/login'
     | '/rules'
     | '/settings'
     | '/trust'
@@ -163,9 +185,11 @@ export interface FileRouteTypes {
     | '/approvals'
     | '/clients'
     | '/copilot'
+    | '/dashboard'
     | '/exceptions'
     | '/inbox'
     | '/invoices'
+    | '/login'
     | '/rules'
     | '/settings'
     | '/trust'
@@ -178,9 +202,11 @@ export interface RootRouteChildren {
   ApprovalsRoute: typeof ApprovalsRoute
   ClientsRoute: typeof ClientsRoute
   CopilotRoute: typeof CopilotRoute
+  DashboardRoute: typeof DashboardRoute
   ExceptionsRoute: typeof ExceptionsRoute
   InboxRoute: typeof InboxRoute
   InvoicesRoute: typeof InvoicesRoute
+  LoginRoute: typeof LoginRoute
   RulesRoute: typeof RulesRoute
   SettingsRoute: typeof SettingsRoute
   TrustRoute: typeof TrustRoute
@@ -209,6 +235,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RulesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invoices': {
       id: '/invoices'
       path: '/invoices'
@@ -228,6 +261,13 @@ declare module '@tanstack/react-router' {
       path: '/exceptions'
       fullPath: '/exceptions'
       preLoaderRoute: typeof ExceptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/copilot': {
@@ -282,9 +322,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApprovalsRoute: ApprovalsRoute,
   ClientsRoute: ClientsRoute,
   CopilotRoute: CopilotRoute,
+  DashboardRoute: DashboardRoute,
   ExceptionsRoute: ExceptionsRoute,
   InboxRoute: InboxRoute,
   InvoicesRoute: InvoicesRoute,
+  LoginRoute: LoginRoute,
   RulesRoute: RulesRoute,
   SettingsRoute: SettingsRoute,
   TrustRoute: TrustRoute,

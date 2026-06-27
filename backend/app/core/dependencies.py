@@ -19,23 +19,28 @@ async def get_current_user(
     db: DbSession,
     authorization: Annotated[str | None, Header()] = None,
 ) -> User:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise UnauthorizedError("Missing or invalid authorization header")
-    token = authorization.removeprefix("Bearer ").strip()
-    try:
-        payload = decode_token(token)
-    except ValueError as exc:
-        raise UnauthorizedError(str(exc)) from exc
-    if payload.get("type") != "access":
-        raise UnauthorizedError("Invalid token type")
-    user_id = payload.get("sub")
-    if not user_id:
-        raise UnauthorizedError("Invalid token payload")
+    # Get the first admin user from the database or create a dummy one
+    from sqlalchemy import select
+    from app.core.security import hash_password
     repo = UserRepository(db)
-    user = await repo.get_by_id(UUID(user_id))
-    if not user or not user.is_active:
-        raise UnauthorizedError("User not found or inactive")
+    result = await db.execute(select(User).limit(1))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        user = User(
+            email="demo@aurora.local",
+            hashed_password=hash_password("dummy"),
+            full_name="Demo Admin",
+            role="admin",
+            is_superuser=True,
+            is_active=True
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+
     return user
+
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

@@ -2,11 +2,12 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Inbox, FileText, AlertTriangle, CheckCircle2,
   BarChart3, Users, ScrollText, Sparkles, Settings, Search, Upload, Bell,
-  Activity, Shield, Menu, X,
+  Activity, Shield, Menu, X, LogOut
 } from "lucide-react";
 
 import { useState, type ReactNode } from "react";
 import { useEmails, useExceptions } from "@/lib/api/hooks";
+import { useAuth } from "@/contexts/auth-context";
 
 const navBase = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -102,6 +103,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
 }
 
 function TopBar({ onMenu, open }: { onMenu: () => void; open: boolean }) {
+  const { auth, logout } = useAuth();
+  
   return (
     <header className="sticky top-0 z-20 h-16 border-b border-border bg-background/60 backdrop-blur-xl">
       <div className="h-full px-4 lg:px-8 flex items-center gap-3">
@@ -128,13 +131,22 @@ function TopBar({ onMenu, open }: { onMenu: () => void; open: boolean }) {
             <Bell className="h-4 w-4" />
             <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive" />
           </button>
-          <div className="h-10 pl-1 pr-3 flex items-center gap-2 rounded-xl border border-border">
-            <div className="h-8 w-8 rounded-lg grid place-items-center text-xs font-bold" style={{ background: "var(--gradient-aurora)" }}>AK</div>
+          <div className="h-10 pl-1 pr-3 flex items-center gap-2 rounded-xl border border-border bg-background/50">
+            <div className="h-8 w-8 rounded-lg grid place-items-center text-xs font-bold" style={{ background: "var(--gradient-aurora)", color: "white" }}>
+              {auth?.user?.full_name?.charAt(0).toUpperCase() || "A"}
+            </div>
             <div className="hidden md:block leading-tight">
-              <div className="text-xs font-semibold">Anya Kapoor</div>
-              <div className="text-[10px] text-muted-foreground">Finance Lead</div>
+              <div className="text-xs font-semibold">{auth?.user?.full_name || "Anya Kapoor"}</div>
+              <div className="text-[10px] text-muted-foreground capitalize">{auth?.user?.role || "Finance Lead"}</div>
             </div>
           </div>
+          <button 
+            onClick={() => logout()} 
+            title="Log Out"
+            className="h-10 w-10 grid place-items-center rounded-xl border border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </header>

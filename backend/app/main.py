@@ -23,6 +23,29 @@ logger = logging.getLogger("aurora")
 async def lifespan(app: FastAPI):
     settings = get_settings()
     logger.info("Starting %s v%s [%s]", settings.app_name, settings.app_version, settings.environment)
+    
+    # Hackathon Demo: Run sync and pipeline on startup
+    import asyncio
+    async def startup_sync():
+        from app.core.database import AsyncSessionLocal
+        from app.controllers import InboxController
+        from app.workers.tasks import process_all_pending_task
+        async with AsyncSessionLocal() as db:
+            try:
+                logger.info("Starting auto-sync for Gmail on startup...")
+                result = await InboxController(db).sync_emails()
+                logger.info(f"Auto-sync completed: {result}")
+                
+                logger.info("Triggering background processing pipeline...")
+                process_all_pending_task.delay()
+            except Exception as e:
+                logger.error(f"Gmail sync failed: {e}. Falling back to demo mode...")
+                from scripts.seed import seed
+                await seed()
+                process_all_pending_task.delay()
+
+    asyncio.create_task(startup_sync())
+    
     yield
     logger.info("Shutting down %s", settings.app_name)
 

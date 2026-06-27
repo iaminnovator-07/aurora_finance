@@ -56,9 +56,40 @@ from app.services.trust_engine_service import TrustEngineService
 class AuthController:
     def __init__(self, session: AsyncSession):
         self.service = AuthService(session)
+        # No need for FirebaseManager instance; use function directly for token verification
 
     async def register(self, data: UserRegisterRequest) -> tuple[UserResponse, TokenResponse]:
+        # Keep existing registration flow for fallback or admin users
         user, tokens = await self.service.register(data.email, data.password, data.full_name)
+        return UserResponse.model_validate(user), TokenResponse(**tokens)
+
+    async def firebase_login(self, data: "FirebaseLoginRequest") -> tuple[UserResponse, TokenResponse]:
+        """Login using a Firebase ID token.
+        The frontend obtains an ID token from Firebase Auth and sends it here.
+        We verify the token, extract the user's email, ensure a local user exists (creating one if necessary),
+        and then issue our own JWT access/refresh tokens for API authentication.
+        """
+        # Import the verification function
+        from app.services.firebase_manager import verify_id_token
+        firebase_user = verify_id_token(data.id_token)
+        email = firebase_user.get("email")
+        uid = firebase_user.get("uid")
+        if not email:
+            raise ValueError("Firebase token missing email claim")
+        # Find or create local user record based on email
+        user = await self.service.user_repo.get_by_email(email)
+        if not user:
+            # Create a placeholder user; password not used for Firebase-authenticated users
+            user = await self.service.user_repo.create(
+                User(
+                    email=email.lower(),
+                    hashed_password="firebase",  # placeholder
+                    full_name=firebase_user.get("name", email.split("@")[0].capitalize()),
+                    role="analyst",
+                )
+            )
+        # Generate our own tokens for the API
+        tokens = self.service._create_tokens(user)
         return UserResponse.model_validate(user), TokenResponse(**tokens)
 
     async def login(self, data: UserLoginRequest) -> tuple[UserResponse, TokenResponse]:

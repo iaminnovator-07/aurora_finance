@@ -6,6 +6,7 @@ type AuthContextValue = {
   auth: StoredAuth | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  demoLogin: () => void;
   logout: () => void;
 };
 
@@ -14,30 +15,24 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 // DEV_CREDENTIALS removed. User must explicitly log in.
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [auth, setAuth] = useState<StoredAuth | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const defaultSession: StoredAuth = {
+    access_token: "demo_access_token",
+    refresh_token: "demo_refresh_token",
+    user: {
+      id: "00000000-0000-0000-0000-000000000000",
+      email: "demo@auroratia.com",
+      full_name: "Demo Admin",
+      role: "admin",
+    }
+  };
+
+  const [auth, setAuth] = useState<StoredAuth | null>(defaultSession);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function bootstrap() {
-      const stored = getStoredAuth();
-      if (stored) {
-        if (!cancelled) {
-          setAuth(stored);
-          setIsLoading(false);
-        }
-        return;
-      }
-      // Do not auto-login with dev credentials anymore.
-      setIsLoading(false);
-    }
-
-    bootstrap();
-    return () => {
-      cancelled = true;
-    };
+    // Demo Mode: We're already logged in by default.
   }, []);
+
 
   const login = async (email: string, password: string) => {
     const data = await api.post<{
@@ -53,13 +48,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuth(session);
   };
 
+  const demoLogin = () => {
+    const session: StoredAuth = {
+      access_token: "demo_access_token",
+      refresh_token: "demo_refresh_token",
+      user: {
+        id: "demo-user-id",
+        email: "demo@auroratia.com",
+        full_name: "Demo User",
+        role: "admin",
+      }
+    };
+    setStoredAuth(session);
+    setAuth(session);
+  };
+
   const logout = () => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
     setAuth(null);
   };
 
   return (
-    <AuthContext.Provider value={{ auth, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ auth, isLoading, login, demoLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );

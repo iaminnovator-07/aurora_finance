@@ -8,7 +8,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { login } = useAuth();
+  const { login, demoLogin } = useAuth();
   const router = useRouter();
   
   const [email, setEmail] = useState("");
@@ -35,6 +35,11 @@ function LoginPage() {
       setError("Invalid credentials. Please try again.");
       setLoading(false);
     }
+  };
+
+  const handleDemo = () => {
+    demoLogin();
+    router.navigate({ to: "/dashboard" });
   };
 
   return (
@@ -102,6 +107,17 @@ function LoginPage() {
               ) : (
                 <>Log In <ArrowRight className="h-4 w-4" /></>
               )}
+            </button>
+          </div>
+          
+          <div className="mt-6 pt-6 border-t border-border text-center">
+            <p className="text-sm text-muted-foreground mb-4">Don't want to set up the backend?</p>
+            <button
+              type="button"
+              onClick={handleDemo}
+              className="w-full h-10 rounded-xl bg-secondary text-secondary-foreground font-medium text-sm transition hover:bg-secondary/80"
+            >
+              Enter Demo Mode
             </button>
           </div>
         </form>
