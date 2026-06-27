@@ -55,11 +55,6 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.0-flash"
     gemini_vision_model: str = "gemini-2.0-flash"
 
-    # Celery / Redis
-    redis_url: str = "redis://localhost:6379/0"
-    celery_broker_url: str = "redis://localhost:6379/0"
-    celery_result_backend: str = "redis://localhost:6379/1"
-
     # Storage
     storage_backend: Literal["local", "supabase"] = "local"
     local_storage_path: str = "./storage"

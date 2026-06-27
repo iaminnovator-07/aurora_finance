@@ -1,24 +1,17 @@
-"""Celery background tasks for AI and pipeline operations."""
+"""Synchronous pipeline helpers — replaces the old Celery task module.
 
-import asyncio
+All processing now runs synchronously inside the FastAPI request lifecycle.
+No broker, no queues, no workers required.
+"""
+
 import logging
 from uuid import UUID
-
-from app.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
 
-def _run_async(coro):
-    """Run async coroutine in sync Celery worker."""
-    loop = asyncio.new_event_loop()
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.close()
-
-
-async def _process_email_async(email_id: str) -> dict:
+async def process_email(email_id: str) -> dict:
+    """Run the full pipeline for a single email synchronously."""
     from app.core.database import AsyncSessionLocal
     from app.services.pipeline_service import PipelineService
 
@@ -33,7 +26,8 @@ async def _process_email_async(email_id: str) -> dict:
             raise
 
 
-async def _process_all_pending_async() -> dict:
+async def process_all_pending() -> dict:
+    """Process all emails with RECEIVED status synchronously."""
     from sqlalchemy import select
     from app.core.database import AsyncSessionLocal
     from app.models.base import EmailStatus
@@ -58,7 +52,8 @@ async def _process_all_pending_async() -> dict:
         return {"processed": len(processed), "results": processed}
 
 
-async def _sync_gmail_async() -> dict:
+async def sync_gmail() -> dict:
+    """Sync Gmail inbox synchronously."""
     from app.core.database import AsyncSessionLocal
     from app.services.gmail_service import GmailService
 
@@ -69,7 +64,8 @@ async def _sync_gmail_async() -> dict:
         return result
 
 
-async def _analytics_snapshot_async() -> dict:
+async def analytics_snapshot() -> dict:
+    """Save an analytics snapshot synchronously."""
     from app.core.database import AsyncSessionLocal
     from app.services.analytics_service import AnalyticsService
 
@@ -78,27 +74,3 @@ async def _analytics_snapshot_async() -> dict:
         snapshot = await service.save_snapshot()
         await session.commit()
         return {"snapshot_id": str(snapshot.id)}
-
-
-@celery_app.task(name="app.workers.tasks.process_email_task", bind=True, max_retries=3)
-def process_email_task(self, email_id: str) -> dict:
-    try:
-        return _run_async(_process_email_async(email_id))
-    except Exception as exc:
-        logger.exception("Pipeline task failed for email %s", email_id)
-        raise self.retry(exc=exc, countdown=30)
-
-
-@celery_app.task(name="app.workers.tasks.process_all_pending_task")
-def process_all_pending_task() -> dict:
-    return _run_async(_process_all_pending_async())
-
-
-@celery_app.task(name="app.workers.tasks.sync_gmail_task")
-def sync_gmail_task() -> dict:
-    return _run_async(_sync_gmail_async())
-
-
-@celery_app.task(name="app.workers.tasks.run_analytics_snapshot_task")
-def run_analytics_snapshot_task() -> dict:
-    return _run_async(_analytics_snapshot_async())

@@ -1,6 +1,10 @@
 """Thin controllers — translate HTTP to service calls."""
 
+import logging
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
+
 
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -212,27 +216,30 @@ class InboxController:
         )
 
     async def process_emails(self, data: EmailProcessRequest, user_id: UUID | None) -> EmailProcessResponse:
-        from app.workers.tasks import process_all_pending_task, process_email_task
+        from app.workers.tasks import process_all_pending, process_email
 
-        task_ids = []
+        results = []
         if data.process_all:
-            task = process_all_pending_task.delay()
-            task_ids.append(task.id)
+            outcome = await process_all_pending()
             return EmailProcessResponse(
-                task_ids=task_ids,
-                processed_count=0,
-                message="Background pipeline started for all pending emails",
+                task_ids=[],
+                processed_count=outcome.get("processed", 0),
+                message=f"Pipeline completed for {outcome.get('processed', 0)} pending email(s)",
             )
 
         email_ids = data.email_ids or []
         for eid in email_ids:
-            task = process_email_task.delay(str(eid))
-            task_ids.append(task.id)
+            try:
+                r = await process_email(str(eid))
+                results.append({"email_id": str(eid), "outcome": r.get("outcome")})
+            except Exception as exc:
+                logger.exception("Pipeline failed for email %s", eid)
+                results.append({"email_id": str(eid), "error": str(exc)})
 
         return EmailProcessResponse(
-            task_ids=task_ids,
+            task_ids=[],
             processed_count=len(email_ids),
-            message=f"Pipeline started for {len(email_ids)} email(s)",
+            message=f"Pipeline completed for {len(email_ids)} email(s)",
         )
 
 

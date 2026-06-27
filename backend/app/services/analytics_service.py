@@ -234,21 +234,27 @@ class AnalyticsService:
         }
 
     async def _email_stats(self, since: datetime) -> dict:
-        result = await self.session.execute(
+        # Total emails received since the given datetime
+        total_result = await self.session.execute(
             select(func.count(Email.id)).where(Email.received_at >= since)
         )
-        total = result.scalar_one() or 0
+        total = total_result.scalar_one() or 0
+
+        # Spam emails count
         spam_result = await self.session.execute(
-            select(func.count(Email.id)).where(Email.received_at >= since, Email.is_spam.is_(True))
+            select(func.count(Email.id)).where(
+                Email.received_at >= since,
+                Email.is_spam.is_(True),
+            )
         )
+        spam_count = spam_result.scalar_one() or 0
+
+        processed_rate = round(((total - spam_count) / total) * 100, 2) if total else 0
+
         return {
             "total_received": total,
-            "spam_count": spam_result.scalar_one() or 0,
-            "processed_rate": round(
-                (total - (spam_result.scalar_one() or 0)) / total * 100, 2
-            )
-            if total
-            else 0,
+            "spam_count": spam_count,
+            "processed_rate": processed_rate,
         }
 
     async def _approval_stats(self) -> dict:

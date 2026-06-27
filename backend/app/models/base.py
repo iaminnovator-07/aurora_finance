@@ -4,8 +4,7 @@ import enum
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, func, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 
