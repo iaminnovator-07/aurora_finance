@@ -29,7 +29,8 @@ class EmailRepository(BaseRepository[Email]):
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[Email], int]:
-        query = select(Email).options(selectinload(Email.attachments))
+        query = select(Email).options(selectinload(Email.attachments), selectinload(Email.trust_score))
+
         count_query = select(func.count()).select_from(Email)
 
         if unread_only:
