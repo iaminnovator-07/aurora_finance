@@ -32,26 +32,23 @@ async def lifespan(app: FastAPI):
         from app.controllers import InboxController
         from app.workers.tasks import process_all_pending
 
+        # Step 1: Sync emails from swadeepbansode@gmail.com
         async with AsyncSessionLocal() as db:
             try:
-                logger.info("Starting auto-sync for Gmail on startup...")
+                logger.info("Syncing emails from Gmail (swadeepbansode@gmail.com)...")
                 result = await InboxController(db).sync_emails()
-                logger.info(f"Auto-sync completed: {result}")
+                logger.info(f"Gmail sync completed: {result}")
             except Exception as e:
-                logger.error(f"Gmail sync failed: {e}. Falling back to demo mode...")
-                try:
-                    from scripts.seed import seed
-                    await seed()
-                except Exception as seed_err:
-                    logger.warning(f"Seed also failed: {seed_err}")
+                logger.error(f"Gmail sync failed: {e}")
 
-        # Process any pending emails synchronously
+        # Step 2: Run pipeline on any newly synced / pending emails
         try:
-            logger.info("Running pipeline for pending emails...")
+            logger.info("Running AI pipeline for pending emails...")
             outcome = await process_all_pending()
-            logger.info(f"Startup pipeline complete: {outcome}")
+            logger.info(f"Pipeline complete: {outcome}")
         except Exception as e:
-            logger.error(f"Startup pipeline failed: {e}")
+            logger.error(f"Pipeline failed: {e}")
+
 
     asyncio.create_task(startup_sync())
 
